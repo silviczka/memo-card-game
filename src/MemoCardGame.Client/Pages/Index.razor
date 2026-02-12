@@ -1,0 +1,235 @@
+@page "/"
+@inject GameApiClient Api
+
+<h1>Memo Card Game</h1>
+
+@if (_gameId == null)
+{
+    <div class="controls">
+        <label>
+            Board:
+            <select @bind="_boardSize">
+                <option value="2">2×2</option>
+                <option value="4" selected>4×4</option>
+                <option value="6">6×6</option>
+            </select>
+        </label>
+        <label>
+            <input type="checkbox" @bind="_useMaxAttempts" />
+            Limit attempts
+        </label>
+        @if (_useMaxAttempts)
+        {
+            <label>
+                Max attempts:
+                <select @bind="_maxAttempts">
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                    <option value="30">30</option>
+                </select>
+            </label>
+        }
+        <button class="btn" @onclick="StartGame">New Game</button>
+    </div>
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="error">@_error</p>
+    }
+}
+else
+{
+    <div class="controls">
+        <button class="btn" @onclick="NewGame">New Game</button>
+    </div>
+
+    @if (_state != null)
+    {
+        <div class="stats">
+            <span>Score: <strong>@_state.Score</strong></span>
+            <span>Moves: <strong>@_state.MoveCount</strong></span>
+            @if (_state.MaxAttempts.HasValue)
+            {
+                <span>Attempts: <strong>@_state.MoveCount / @_state.MaxAttempts</strong></span>
+            }
+        </div>
+
+        @if (_state.IsFinished)
+        {
+            <div class="message @(_state.AllPairsMatched ? "win" : "lose")">
+                @(_state.AllPairsMatched ? "You won! All pairs matched." : "No attempts left. Try again!")
+            </div>
+        }
+        else
+        {
+            <div class="board" style="grid-template-columns: repeat(@_state.BoardSize, 1fr);">
+                @foreach (var card in _state.Cards.OrderBy(c => c.Position))
+                {
+                    var c = card;
+                    var overlayEntry = _mismatchOverlay.FirstOrDefault(o => o.Id == c.Id);
+                    var isInOverlay = overlayEntry.Id == c.Id;
+                    var showFlipped = c.IsFlipped || c.IsMatched || isInOverlay;
+                    var showPairId = isInOverlay ? overlayEntry.PairId : c.PairId;
+                    <button class="card-slot @(showFlipped ? "flipped" : "") @(c.IsMatched ? "matched" : "")"
+                            disabled="@(_state.IsFinished || c.IsMatched || isInOverlay || _waitingResolve || _state.FlippedCountThisTurn == 2)"
+                            @onclick="() => Flip(c.Id)">
+                        @if (showFlipped)
+                        {
+                            <img class="card-emoji-img" src="@EmojiImageUrl(showPairId)" alt="" />
+                        }
+                        else
+                        {
+                            <span class="card-back">?</span>
+                        }
+                    </button>
+                }
+            </div>
+        }
+    }
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <p class="error">@_error</p>
+    }
+}
+
+@code {
+    private Guid? _gameId;
+    private GameStateDto? _state;
+    private string _error = "";
+    private bool _waitingResolve;
+    private List<(Guid Id, int PairId)> _mismatchOverlay = new();
+    private CancellationTokenSource? _mismatchOverlayCts;
+    private int _boardSize = 4;
+    private bool _useMaxAttempts;
+    private int _maxAttempts = 20;
+
+    private const int MismatchDisplayMs = 3000;
+
+    private async Task StartGame()
+    {
+        _error = "";
+        try
+        {
+            var res = await Api.StartGameAsync(_boardSize, _useMaxAttempts ? _maxAttempts : null);
+            if (res != null)
+            {
+                _gameId = res.Id;
+                await LoadState();
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private void NewGame()
+    {
+        _mismatchOverlayCts?.Cancel();
+        _mismatchOverlayCts?.Dispose();
+        _mismatchOverlayCts = null;
+        _mismatchOverlay = new List<(Guid Id, int PairId)>();
+        _gameId = null;
+        _state = null;
+        _error = "";
+    }
+
+    private async Task LoadState()
+    {
+        if (_gameId == null) return;
+        _error = "";
+        try
+        {
+            _state = await Api.GetStateAsync(_gameId.Value);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task Flip(Guid cardId)
+    {
+        if (_gameId == null || _state?.IsFinished == true || _waitingResolve) return;
+        if (_state?.FlippedCountThisTurn == 2) return; // wait for resolve
+        _error = "";
+        if (_mismatchOverlay.Count > 0)
+        {
+            _mismatchOverlayCts?.Cancel();
+            _mismatchOverlayCts?.Dispose();
+            _mismatchOverlayCts = null;
+            _mismatchOverlay = new List<(Guid Id, int PairId)>();
+            StateHasChanged();
+        }
+        try
+        {
+            _state = await Api.FlipAsync(_gameId!.Value, cardId);
+            if (_state != null && _state.FlippedCountThisTurn == 2 && !_state.IsFinished)
+                _ = ResolveAfterDelayAsync(_state);
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    private async Task ResolveAfterDelayAsync(GameStateDto state)
+    {
+        _waitingResolve = true;
+        try
+        {
+            await InvokeAsync(StateHasChanged);
+            var flippedThisTurn = state.Cards.Where(c => c.IsFlipped && !c.IsMatched).ToList();
+            var isMatch = flippedThisTurn.Count == 2 && flippedThisTurn[0].PairId == flippedThisTurn[1].PairId;
+            if (_gameId == null) return;
+            var resolved = await Api.ResolveAsync(_gameId.Value);
+            _state = resolved ?? await Api.GetStateAsync(_gameId.Value);
+            if (!isMatch && flippedThisTurn.Count == 2)
+            {
+                _mismatchOverlay = flippedThisTurn.Select(c => (c.Id, c.PairId!.Value)).ToList();
+                _mismatchOverlayCts?.Cancel();
+                _mismatchOverlayCts?.Dispose();
+                _mismatchOverlayCts = new CancellationTokenSource();
+                _ = HideMismatchAfterDelayAsync(MismatchDisplayMs, _mismatchOverlayCts.Token);
+            }
+        }
+        catch
+        {
+            if (_gameId != null) { try { _state = await Api.GetStateAsync(_gameId.Value); } catch { } }
+        }
+        finally
+        {
+            _waitingResolve = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task HideMismatchAfterDelayAsync(int ms, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(ms, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        _mismatchOverlay = new List<(Guid Id, int PairId)>();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static readonly string[] EmojiCodepoints = { "1f436", "1f431", "1f42d", "1f439", "1f430", "1f98a", "1f43b", "1f43c", "1f428", "1f42f", "1f981", "1f42e", "1f437", "1f438", "1f435", "1f414", "1f427", "1f426", "1f424", "1f984", "1f434" };
+    private const string TwemojiBase = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72";
+
+    private static string EmojiImageUrl(int? pairId)
+    {
+        if (pairId == null) return "";
+        var i = pairId.Value % EmojiCodepoints.Length;
+        return $"{TwemojiBase}/{EmojiCodepoints[i]}.png";
+    }
+}

@@ -1,0 +1,25 @@
+# Build
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.userosxml
+*.suo
+*.cache
+
+# Local / secrets
+appsettings.Development.json
+appsettings.*.local.json
+*.db
+*.db-shm
+*.db-wal
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
