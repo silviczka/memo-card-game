@@ -57,6 +57,10 @@ Unit tests cover game rules (flip validation, scoring, game completion).
 - **MemoCardGame.Client** — Blazor WebAssembly frontend
 - **MemoCardGame.Tests** — Unit tests
 
+## Deployment
+
+See [DEPLOY.md](DEPLOY.md) for single-host deployment (Railway, Fly.io, Render) and for hosting the Blazor client on Vercel with the API on a separate .NET host.
+
 ## License
 
 MIT
