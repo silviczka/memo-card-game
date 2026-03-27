@@ -11,7 +11,9 @@ if (string.IsNullOrEmpty(builder.WebHost.GetSetting("urls")))
     builder.WebHost.UseUrls("http://localhost:5000;https://localhost:5001");
 
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration["SqlitePath"] ?? "memo.db");
+builder.Services.AddInfrastructure(
+    builder.Configuration["SqlitePath"] ?? "memo.db",
+    builder.Configuration.GetConnectionString("Default"));
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()?
     .Where(static o => !string.IsNullOrWhiteSpace(o))

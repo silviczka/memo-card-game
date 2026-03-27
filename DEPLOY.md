@@ -32,13 +32,20 @@ Publish the Blazor WebAssembly client as static files and host the API separatel
 
 3. Set `Cors:AllowedOrigins` in `src/MemoCardGame.Api/appsettings.Production.json` to your static frontend origin (replace `https://your-app.vercel.app`).
 
-4. Build the client:
+4. (Optional, for PostgreSQL) set `ConnectionStrings__Default` on the API service environment (Koyeb variable). If this value is present, the API uses PostgreSQL; otherwise it falls back to SQLite (`SqlitePath` / `memo.db`).
+
+   Example:
+   ```text
+   ConnectionStrings__Default=Host=...;Port=5432;Database=...;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true
+   ```
+
+5. Build the client:
    ```bash
    dotnet publish src/MemoCardGame.Client -c Release
    ```
    Output: `src/MemoCardGame.Client/bin/Release/net8.0/publish/wwwroot/`.
 
-5. Deploy the contents of `src/MemoCardGame.Client/bin/Release/net8.0/publish/wwwroot/` to your static host.
+6. Deploy the contents of `src/MemoCardGame.Client/bin/Release/net8.0/publish/wwwroot/` to your static host.
 
 `MemoCardGame.Api/Program.cs` reads `Cors:AllowedOrigins` from configuration; local development keeps `AllowedOrigins` empty in `appsettings.json` so any origin is allowed.
 
