@@ -12,12 +12,20 @@ if (string.IsNullOrEmpty(builder.WebHost.GetSetting("urls")))
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration["SqlitePath"] ?? "memo.db");
+
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()?
+    .Where(static o => !string.IsNullOrWhiteSpace(o))
+    .Select(static o => o.Trim())
+    .ToArray() ?? [];
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
-        // For production, replace with policy.WithOrigins("https://your-frontend.com") etc.
+        if (corsOrigins.Length > 0)
+            policy.WithOrigins(corsOrigins).AllowAnyMethod().AllowAnyHeader();
+        else
+            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
     });
 });
 

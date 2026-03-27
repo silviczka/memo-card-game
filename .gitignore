@@ -4,6 +4,9 @@
 [Ll]og/
 [Ll]ogs/
 
+# Local publish / VS output folders (do not commit — regenerate with dotnet publish)
+memoCards_build/
+
 # IDE
 .vs/
 .vscode/

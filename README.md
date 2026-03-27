@@ -1,6 +1,6 @@
 # Memo Card Game
 
-A browser-based memory (card matching) game. Game rules, scoring, and state are handled on the server; the client calls a REST API. Built with .NET 8.
+A browser-based memory game built with .NET 8. Game rules, scoring, and state are handled on the server, while the client interacts through a REST API.
 
 ## Features
 
@@ -18,23 +18,23 @@ A browser-based memory (card matching) game. Game rules, scoring, and state are 
 
 ## Getting Started
 
-**Prerequisites:** .NET 8 SDK
+Prerequisite: .NET 8 SDK
 
 ```bash
 cd src/MemoCardGame.Api
 dotnet run
 ```
 
-Open the URL shown in the terminal (e.g. `http://localhost:5000` or `https://localhost:5001`).
+Open the URL shown in the terminal, for example `http://localhost:5000` or `https://localhost:5001`.
 
 ## API
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/games` | Create a new game. Body: `{ "boardSize": 4, "maxAttempts": 20 }` (optional). |
-| GET | `/games/{id}` | Get current game state. Unflipped cards are masked. |
+| GET | `/games/{id}` | Return the current game state. Unflipped cards are masked. |
 | POST | `/games/{id}/flip` | Flip a card. Body: `{ "cardId": "<guid>" }`. |
-| POST | `/games/{id}/resolve` | Resolve the current turn (after two cards are flipped). |
+| POST | `/games/{id}/resolve` | Resolve the current turn after two cards are flipped. |
 
 Error responses use the shape `{ "error": "<message>" }`.
 
@@ -59,7 +59,7 @@ Unit tests cover game rules (flip validation, scoring, game completion).
 
 ## Deployment
 
-See [DEPLOY.md](DEPLOY.md) for single-host deployment (Railway, Fly.io, Render) and for hosting the Blazor client on Vercel with the API on a separate .NET host.
+See [DEPLOY.md](DEPLOY.md) for deployment options. The repository root includes a `Dockerfile` that publishes `MemoCardGame.Api`.
 
 ## License
 
