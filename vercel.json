@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "curl -sSL https://dot.net/v1/dotnet-install.sh | bash /dev/stdin --channel 8.0",
+  "buildCommand": "$HOME/.dotnet/dotnet publish src/MemoCardGame.Client -c Release --verbosity minimal",
+  "outputDirectory": "src/MemoCardGame.Client/bin/Release/net8.0/publish/wwwroot",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
