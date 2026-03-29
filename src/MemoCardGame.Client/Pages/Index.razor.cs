@@ -41,6 +41,7 @@ public partial class Index : ComponentBase
     private int? _activeBoardSize;
     private bool _useMaxAttempts;
     private int _maxAttempts = 20;
+    private Task? _warmupTask;
 
     private const int MismatchDisplayMs = 3000;
     private const string TwemojiBase = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg";
@@ -54,17 +55,28 @@ public partial class Index : ComponentBase
             _ => "Turn complete"
         };
 
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _warmupTask = WarmUpApiAsync();
+
+        return Task.CompletedTask;
+    }
+
     private async Task StartGame()
     {
         _error = "";
         try
         {
-            var res = await Api.StartGameAsync(_boardSize, _useMaxAttempts ? _maxAttempts : null);
-            if (res != null)
+            if (_warmupTask is { IsCompleted: false })
+                await _warmupTask;
+
+            var state = await Api.StartGameAsync(_boardSize, _useMaxAttempts ? _maxAttempts : null);
+            if (state != null)
             {
-                _gameId = res.Id;
-                _activeBoardSize = res.BoardSize;
-                await LoadState();
+                _state = state;
+                _gameId = state.Id;
+                _activeBoardSize = state.BoardSize;
             }
         }
         catch (Exception ex)
@@ -83,24 +95,6 @@ public partial class Index : ComponentBase
         _state = null;
         _activeBoardSize = null;
         _error = "";
-    }
-
-    private async Task LoadState()
-    {
-        if (_gameId == null)
-            return;
-
-        _error = "";
-        try
-        {
-            _state = await Api.GetStateAsync(_gameId.Value);
-            if (_state != null)
-                _activeBoardSize = _state.BoardSize;
-        }
-        catch (Exception ex)
-        {
-            _error = ex.Message;
-        }
     }
 
     private async Task Flip(Guid cardId)
@@ -188,6 +182,18 @@ public partial class Index : ComponentBase
 
         _mismatchOverlay = new List<(Guid Id, int PairId)>();
         await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task WarmUpApiAsync()
+    {
+        try
+        {
+            await Api.WarmUpAsync();
+        }
+        catch
+        {
+            // Warm-up is best-effort only. The real request path will still surface any errors.
+        }
     }
 
     private static string EmojiImageUrl(int? pairId)

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MemoCardGame.Api;
 using MemoCardGame.Application;
 using MemoCardGame.Infrastructure;
@@ -40,8 +41,28 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path;
+    var shouldLog = path.StartsWithSegments("/games") || path.StartsWithSegments("/healthz");
+    if (!shouldLog)
+    {
+        await next();
+        return;
+    }
+
+    var sw = Stopwatch.StartNew();
+    await next();
+    app.Logger.LogInformation(
+        "Request {Method} {Path} responded {StatusCode} in {ElapsedMs} ms",
+        context.Request.Method,
+        path,
+        context.Response.StatusCode,
+        sw.ElapsedMilliseconds);
+});
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 app.MapApi();
 app.MapFallbackToFile("index.html");
 

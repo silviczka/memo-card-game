@@ -18,7 +18,7 @@ public static class ApiEndpoints
             try
             {
                 var game = svc.StartNewGame(size, maxAttempts);
-                return Results.Created($"/games/{game.Id}", new { game.Id, game.BoardSize, game.MaxAttempts });
+                return Results.Created($"/games/{game.Id}", GameService.ToStateDto(game));
             }
             catch (ArgumentOutOfRangeException ex)
             {
@@ -35,17 +35,15 @@ public static class ApiEndpoints
         group.MapPost("/{id:guid}/flip", (Guid id, [FromBody] FlipRequest body, IGameService svc) =>
         {
             if (body?.CardId is null) return Results.BadRequest(ApiError("CardId is required."));
-            var (success, error) = svc.FlipCard(id, body.CardId.Value);
+            var (success, state, error) = svc.FlipCardAndGetState(id, body.CardId.Value);
             if (!success) return Results.BadRequest(ApiError(error ?? "Invalid move."));
-            var state = svc.GetState(id);
             return state is null ? Results.NotFound() : Results.Ok(state);
         });
 
         group.MapPost("/{id:guid}/resolve", (Guid id, IGameService svc) =>
         {
-            var (success, error) = svc.ResolveTurn(id);
+            var (success, state, error) = svc.ResolveTurnAndGetState(id);
             if (!success) return Results.BadRequest(ApiError(error ?? "Resolve failed."));
-            var state = svc.GetState(id);
             return state is null ? Results.NotFound() : Results.Ok(state);
         });
     }

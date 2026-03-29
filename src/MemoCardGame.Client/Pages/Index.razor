@@ -51,7 +51,6 @@ else
         }
         else
         {
-            var orderedCards = _state.Cards.OrderBy(c => c.Position).ToList();
             @if (shellEight)
             {
                 <div class="board-stack board-stack--8">
@@ -62,7 +61,7 @@ else
                                 MaxAttempts="@_state.MaxAttempts" />
                     <div class="board-wrap board-wrap--in-stack">
                         <GameBoard BoardSize="@_state.BoardSize"
-                                   Cards="@orderedCards"
+                                   Cards="@_state.Cards"
                                    MismatchOverlay="@_mismatchOverlay"
                                    WaitingResolve="@_waitingResolve"
                                    IsFinished="@_state.IsFinished"
@@ -76,7 +75,7 @@ else
             {
                 <div class="board-wrap">
                     <GameBoard BoardSize="@_state.BoardSize"
-                               Cards="@orderedCards"
+                               Cards="@_state.Cards"
                                MismatchOverlay="@_mismatchOverlay"
                                WaitingResolve="@_waitingResolve"
                                IsFinished="@_state.IsFinished"

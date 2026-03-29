@@ -8,6 +8,8 @@ public interface IGameService
     Game? GetGame(Guid gameId);
     (bool Success, string? Error) FlipCard(Guid gameId, Guid cardId);
     (bool Success, string? Error) ResolveTurn(Guid gameId);
+    (bool Success, GameStateDto? State, string? Error) FlipCardAndGetState(Guid gameId, Guid cardId);
+    (bool Success, GameStateDto? State, string? Error) ResolveTurnAndGetState(Guid gameId);
     GameStateDto? GetState(Guid gameId);
 }
 
@@ -38,36 +40,48 @@ public class GameService : IGameService
     /// <summary>Flips one card. Does not resolve the turn — client calls ResolveTurn after showing both cards.</summary>
     public (bool Success, string? Error) FlipCard(Guid gameId, Guid cardId)
     {
+        var (success, _, error) = FlipCardAndGetState(gameId, cardId);
+        return (success, error);
+    }
+
+    public (bool Success, GameStateDto? State, string? Error) FlipCardAndGetState(Guid gameId, Guid cardId)
+    {
         var game = _repository.GetById(gameId);
-        if (game is null) return (false, "Game not found.");
+        if (game is null) return (false, null, "Game not found.");
         var (isValid, error) = _moveValidator.CanFlip(game, cardId);
-        if (!isValid) return (false, error);
+        if (!isValid) return (false, null, error);
         try
         {
             game.FlipCard(cardId);
             _repository.Save(game);
-            return (true, null);
+            return (true, ToStateDto(game), null);
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            return (false, null, ex.Message);
         }
     }
 
     /// <summary>Resolves the current turn (2 flipped cards): match → stay open, no match → flip back. Call after user has seen both cards.</summary>
     public (bool Success, string? Error) ResolveTurn(Guid gameId)
     {
+        var (success, _, error) = ResolveTurnAndGetState(gameId);
+        return (success, error);
+    }
+
+    public (bool Success, GameStateDto? State, string? Error) ResolveTurnAndGetState(Guid gameId)
+    {
         var game = _repository.GetById(gameId);
-        if (game is null) return (false, "Game not found.");
+        if (game is null) return (false, null, "Game not found.");
         try
         {
             game.ResolveTurn();
             _repository.Save(game);
-            return (true, null);
+            return (true, ToStateDto(game), null);
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            return (false, null, ex.Message);
         }
     }
 

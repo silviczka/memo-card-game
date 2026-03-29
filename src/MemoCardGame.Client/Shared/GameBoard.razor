@@ -2,10 +2,9 @@
     @for (var idx = 0; idx < Cards.Count; idx++)
     {
         var card = Cards[idx];
-        var overlayEntry = MismatchOverlay.FirstOrDefault(o => o.Id == card.Id);
-        var isInOverlay = overlayEntry.Id == card.Id;
+        var isInOverlay = _mismatchOverlayByCardId.TryGetValue(card.Id, out var overlayPairId);
         var showFlipped = card.IsFlipped || card.IsMatched || isInOverlay;
-        var showPairId = isInOverlay ? overlayEntry.PairId : card.PairId;
+        var showPairId = isInOverlay ? overlayPairId : card.PairId;
 
         <button type="button"
                 class="card-slot @(showFlipped ? "is-revealed" : "") @(card.IsMatched ? "matched" : "")"
@@ -27,6 +26,8 @@
 </div>
 
 @code {
+    private readonly Dictionary<Guid, int> _mismatchOverlayByCardId = new();
+
     [Parameter]
     public int BoardSize { get; set; }
 
@@ -50,4 +51,12 @@
 
     [Parameter]
     public Func<int?, string> EmojiUrl { get; set; } = static _ => "";
+
+    protected override void OnParametersSet()
+    {
+        _mismatchOverlayByCardId.Clear();
+
+        foreach (var (id, pairId) in MismatchOverlay)
+            _mismatchOverlayByCardId[id] = pairId;
+    }
 }

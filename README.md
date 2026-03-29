@@ -59,7 +59,7 @@ Unit tests cover game rules (flip validation, scoring, game completion).
 
 ## Deployment
 
-See [DEPLOY.md](DEPLOY.md) for deployment options. The repository root includes a `Dockerfile` that publishes `MemoCardGame.Api`.
+See [docs/DEPLOY.md](docs/DEPLOY.md) for deployment options. The repository root includes a `Dockerfile` that publishes `MemoCardGame.Api`.
 
 ## License
 

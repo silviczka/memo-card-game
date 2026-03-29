@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace MemoCardGame.Client;
@@ -12,34 +13,54 @@ public class GameApiClient
         _http = http;
     }
 
-    public async Task<StartGameResponse?> StartGameAsync(int boardSize = 4, int? maxAttempts = null)
+    public async Task WarmUpAsync()
+    {
+        var sw = Stopwatch.StartNew();
+        using var res = await _http.GetAsync("/healthz");
+        res.EnsureSuccessStatusCode();
+        Console.WriteLine($"[perf] GET /healthz completed in {sw.ElapsedMilliseconds} ms");
+    }
+
+    public async Task<GameStateDto?> StartGameAsync(int boardSize = 4, int? maxAttempts = null)
     {
         var body = new { BoardSize = boardSize, MaxAttempts = maxAttempts };
+        var sw = Stopwatch.StartNew();
         var res = await _http.PostAsJsonAsync("/games", body);
         res.EnsureSuccessStatusCode();
-        return await res.Content.ReadFromJsonAsync<StartGameResponse>();
+        var state = await res.Content.ReadFromJsonAsync<GameStateDto>();
+        Console.WriteLine($"[perf] POST /games completed in {sw.ElapsedMilliseconds} ms");
+        return state;
     }
 
     public async Task<GameStateDto?> GetStateAsync(Guid gameId)
     {
-        return await _http.GetFromJsonAsync<GameStateDto>($"/games/{gameId}");
+        var sw = Stopwatch.StartNew();
+        var state = await _http.GetFromJsonAsync<GameStateDto>($"/games/{gameId}");
+        Console.WriteLine($"[perf] GET /games/{gameId} completed in {sw.ElapsedMilliseconds} ms");
+        return state;
     }
 
     public async Task<GameStateDto?> FlipAsync(Guid gameId, Guid cardId)
     {
         var body = new { CardId = cardId };
+        var sw = Stopwatch.StartNew();
         var res = await _http.PostAsJsonAsync($"/games/{gameId}/flip", body);
         if (!res.IsSuccessStatusCode)
             throw await CreateApiException(res);
-        return await res.Content.ReadFromJsonAsync<GameStateDto>();
+        var state = await res.Content.ReadFromJsonAsync<GameStateDto>();
+        Console.WriteLine($"[perf] POST /games/{gameId}/flip completed in {sw.ElapsedMilliseconds} ms");
+        return state;
     }
 
     public async Task<GameStateDto?> ResolveAsync(Guid gameId)
     {
+        var sw = Stopwatch.StartNew();
         var res = await _http.PostAsync($"/games/{gameId}/resolve", null);
         if (!res.IsSuccessStatusCode)
             throw await CreateApiException(res);
-        return await res.Content.ReadFromJsonAsync<GameStateDto>();
+        var state = await res.Content.ReadFromJsonAsync<GameStateDto>();
+        Console.WriteLine($"[perf] POST /games/{gameId}/resolve completed in {sw.ElapsedMilliseconds} ms");
+        return state;
     }
 
     private static async Task<ApiException> CreateApiException(HttpResponseMessage res)
@@ -63,13 +84,6 @@ public class GameApiClient
 public class ApiException : Exception
 {
     public ApiException(string message) : base(message) { }
-}
-
-public class StartGameResponse
-{
-    public Guid Id { get; set; }
-    public int BoardSize { get; set; }
-    public int? MaxAttempts { get; set; }
 }
 
 public class GameStateDto

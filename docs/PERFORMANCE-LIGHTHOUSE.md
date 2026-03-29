@@ -1,10 +1,15 @@
-# Performance Notes
+# Lighthouse Performance Notes
 
-This file records the current performance baseline and the performance-related code changes that are now present in the uncommitted work.
+This file records page-load metrics from Lighthouse and the load-focused changes that have already been implemented.
+
+## What This File Covers
+
+- Synthetic page-load audits from Lighthouse.
+- Initial-load optimizations such as preload, preconnect, and smaller release payload settings.
 
 ## Lighthouse Baseline
 
-These numbers come from the current Lighthouse JSON reports for `https://memocardgame.vercel.app/`.
+These numbers come from the Lighthouse JSON reports for `https://memocardgame.vercel.app/`.
 
 | Metric | Desktop | Mobile |
 |--------|---------|--------|
@@ -36,7 +41,7 @@ These numbers come from the current Lighthouse JSON reports for `https://memocar
 
 - The app now gives the browser an earlier hint about the API connection.
 - The app now gives the browser an earlier hint about the Blazor startup script.
-- The Release build is configured to ship a smaller WebAssembly payload by removing globalization and time zone features that are not currently needed.
+- The release build is configured to ship a smaller WebAssembly payload by removing globalization and time zone features that are not currently needed.
 
 ## Results After 1st Improvement
 
