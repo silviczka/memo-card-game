@@ -1,0 +1,53 @@
+<div class="board" style="--board-cols: @BoardSize; --board-rows: @BoardSize; grid-template-columns: repeat(@BoardSize, var(--board-cell));">
+    @for (var idx = 0; idx < Cards.Count; idx++)
+    {
+        var card = Cards[idx];
+        var overlayEntry = MismatchOverlay.FirstOrDefault(o => o.Id == card.Id);
+        var isInOverlay = overlayEntry.Id == card.Id;
+        var showFlipped = card.IsFlipped || card.IsMatched || isInOverlay;
+        var showPairId = isInOverlay ? overlayEntry.PairId : card.PairId;
+
+        <button type="button"
+                class="card-slot @(showFlipped ? "is-revealed" : "") @(card.IsMatched ? "matched" : "")"
+                style="--stagger: @(idx * 25)ms"
+                disabled="@(IsFinished || card.IsMatched || isInOverlay || WaitingResolve || FlippedCountThisTurn == 2)"
+                @onclick="() => OnFlip.InvokeAsync(card.Id)"
+                aria-label="@(showFlipped ? "Revealed card" : "Hidden card")">
+            <span class="card-flip">
+                <span class="card-face card-face--back">
+                    <span class="card-back-pattern"></span>
+                    <span class="card-back-mark">?</span>
+                </span>
+                <span class="card-face card-face--front">
+                    <img class="card-emoji-img" src="@EmojiUrl(showPairId)" alt="" loading="lazy" />
+                </span>
+            </span>
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int BoardSize { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<CardStateDto> Cards { get; set; } = Array.Empty<CardStateDto>();
+
+    [Parameter]
+    public IReadOnlyList<(Guid Id, int PairId)> MismatchOverlay { get; set; } = Array.Empty<(Guid, int)>();
+
+    [Parameter]
+    public bool WaitingResolve { get; set; }
+
+    [Parameter]
+    public bool IsFinished { get; set; }
+
+    [Parameter]
+    public int FlippedCountThisTurn { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnFlip { get; set; }
+
+    [Parameter]
+    public Func<int?, string> EmojiUrl { get; set; } = static _ => "";
+}

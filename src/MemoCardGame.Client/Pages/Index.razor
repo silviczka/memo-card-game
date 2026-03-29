@@ -1,99 +1,122 @@
 @page "/"
 @inject GameApiClient Api
 
-<h1>Memo Card Game</h1>
+<header class="game-header">
+    <h1 class="game-title">Memo</h1>
+    <p class="game-tagline">Match the pairs — quick, calm, and sharp.</p>
+</header>
 
 @if (_gameId == null)
 {
-    <div class="controls">
-        <label>
-            Board:
-            <select @bind="_boardSize">
-                <option value="2">2×2</option>
-                <option value="4" selected>4×4</option>
-                <option value="6">6×6</option>
-            </select>
-        </label>
-        <label>
-            <input type="checkbox" @bind="_useMaxAttempts" />
-            Limit attempts
-        </label>
-        @if (_useMaxAttempts)
-        {
-            <label>
-                Max attempts:
-                <select @bind="_maxAttempts">
-                    <option value="10">10</option>
-                    <option value="15">15</option>
-                    <option value="20">20</option>
-                    <option value="30">30</option>
-                </select>
-            </label>
-        }
-        <button class="btn" @onclick="StartGame">New Game</button>
-    </div>
+    <StartGamePanel BoardSizeOptions="@BoardSizeOptions"
+                    MaxAttemptOptions="@MaxAttemptOptions"
+                    BoardSize="@_boardSize"
+                    BoardSizeChanged="@(v => _boardSize = v)"
+                    UseMaxAttempts="@_useMaxAttempts"
+                    UseMaxAttemptsChanged="@(v => _useMaxAttempts = v)"
+                    MaxAttempts="@_maxAttempts"
+                    MaxAttemptsChanged="@(v => _maxAttempts = v)"
+                    OnStart="StartGame" />
     @if (!string.IsNullOrEmpty(_error))
     {
-        <p class="error">@_error</p>
+        <p class="error" role="alert">@_error</p>
     }
 }
 else
 {
-    <div class="controls">
-        <button class="btn" @onclick="NewGame">New Game</button>
-    </div>
+    var shellEight = _activeBoardSize == 8;
+    <div class="game-shell @(shellEight ? "game-shell--8" : "")">
+        <GameToolbar Compact="@shellEight"
+                     ShowHint="@(_state != null && !_state.IsFinished)"
+                     ShowPulse="@_waitingResolve"
+                     HintText="@CurrentTurnHint"
+                     ShowFinishedStats="@(_state != null && _state.IsFinished)"
+                     Score="@(_state?.Score ?? 0)"
+                     MoveCount="@(_state?.MoveCount ?? 0)"
+                     MaxAttempts="@_state?.MaxAttempts"
+                     OnMenu="NewGame" />
+
+    @if (_state != null && !shellEight)
+    {
+        <GameStats Score="@_state.Score"
+                   MoveCount="@_state.MoveCount"
+                   MaxAttempts="@_state.MaxAttempts"
+                   Announce="true" />
+    }
 
     @if (_state != null)
     {
-        <div class="stats">
-            <span>Score: <strong>@_state.Score</strong></span>
-            <span>Moves: <strong>@_state.MoveCount</strong></span>
-            @if (_state.MaxAttempts.HasValue)
-            {
-                <span>Attempts: <strong>@_state.MoveCount / @_state.MaxAttempts</strong></span>
-            }
-        </div>
-
         @if (_state.IsFinished)
         {
-            <div class="message @(_state.AllPairsMatched ? "win" : "lose")">
-                @(_state.AllPairsMatched ? "You won! All pairs matched." : "No attempts left. Try again!")
-            </div>
+            <GameStatusMessage AllPairsMatched="@_state.AllPairsMatched" OnPlayAgain="NewGame" />
         }
         else
         {
-            <div class="board" style="grid-template-columns: repeat(@_state.BoardSize, 1fr);">
-                @foreach (var card in _state.Cards.OrderBy(c => c.Position))
-                {
-                    var c = card;
-                    var overlayEntry = _mismatchOverlay.FirstOrDefault(o => o.Id == c.Id);
-                    var isInOverlay = overlayEntry.Id == c.Id;
-                    var showFlipped = c.IsFlipped || c.IsMatched || isInOverlay;
-                    var showPairId = isInOverlay ? overlayEntry.PairId : c.PairId;
-                    <button class="card-slot @(showFlipped ? "flipped" : "") @(c.IsMatched ? "matched" : "")"
-                            disabled="@(_state.IsFinished || c.IsMatched || isInOverlay || _waitingResolve || _state.FlippedCountThisTurn == 2)"
-                            @onclick="() => Flip(c.Id)">
-                        @if (showFlipped)
-                        {
-                            <img class="card-emoji-img" src="@EmojiImageUrl(showPairId)" alt="" />
-                        }
-                        else
-                        {
-                            <span class="card-back">?</span>
-                        }
-                    </button>
-                }
-            </div>
+            var orderedCards = _state.Cards.OrderBy(c => c.Position).ToList();
+            @if (shellEight)
+            {
+                <div class="board-stack board-stack--8">
+                    <div class="board-meta board-meta--8">
+                        <span class="board-meta__hint toolbar-hint @(_waitingResolve ? "toolbar-hint__pulse" : "")" aria-live="polite">@CurrentTurnHint</span>
+                        <GameStats Score="@_state.Score"
+                                   MoveCount="@_state.MoveCount"
+                                   MaxAttempts="@_state.MaxAttempts"
+                                   AttemptsLabel="Att."
+                                   CssClass="stats--board8"
+                                   ItemCssClass="stat-pill--toolbar stat-pill--board8"
+                                   Announce="true" />
+                    </div>
+                    <div class="board-wrap board-wrap--in-stack">
+                        <GameBoard BoardSize="@_state.BoardSize"
+                                   Cards="@orderedCards"
+                                   MismatchOverlay="@_mismatchOverlay"
+                                   WaitingResolve="@_waitingResolve"
+                                   IsFinished="@_state.IsFinished"
+                                   FlippedCountThisTurn="@_state.FlippedCountThisTurn"
+                                   OnFlip="Flip"
+                                   EmojiUrl="EmojiImageUrl" />
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="board-wrap">
+                    <GameBoard BoardSize="@_state.BoardSize"
+                               Cards="@orderedCards"
+                               MismatchOverlay="@_mismatchOverlay"
+                               WaitingResolve="@_waitingResolve"
+                               IsFinished="@_state.IsFinished"
+                               FlippedCountThisTurn="@_state.FlippedCountThisTurn"
+                               OnFlip="Flip"
+                               EmojiUrl="EmojiImageUrl" />
+                </div>
+            }
         }
     }
 
     @if (!string.IsNullOrEmpty(_error))
     {
-        <p class="error">@_error</p>
+        <p class="error" role="alert">@_error</p>
     }
+    </div>
 }
 
 @code {
+    private static readonly IntSelectOption[] BoardSizeOptions =
+    {
+        new(4, "4×4 — classic"),
+        new(6, "6×6 — challenge"),
+        new(8, "8×8 — marathon")
+    };
+
+    private static readonly IntSelectOption[] MaxAttemptOptions =
+    {
+        new(10, "10"),
+        new(15, "15"),
+        new(20, "20"),
+        new(30, "30")
+    };
+
     private Guid? _gameId;
     private GameStateDto? _state;
     private string _error = "";
@@ -101,6 +124,7 @@ else
     private List<(Guid Id, int PairId)> _mismatchOverlay = new();
     private CancellationTokenSource? _mismatchOverlayCts;
     private int _boardSize = 4;
+    private int? _activeBoardSize;
     private bool _useMaxAttempts;
     private int _maxAttempts = 20;
 
@@ -115,6 +139,7 @@ else
             if (res != null)
             {
                 _gameId = res.Id;
+                _activeBoardSize = res.BoardSize;
                 await LoadState();
             }
         }
@@ -132,6 +157,7 @@ else
         _mismatchOverlay = new List<(Guid Id, int PairId)>();
         _gameId = null;
         _state = null;
+        _activeBoardSize = null;
         _error = "";
     }
 
@@ -142,6 +168,8 @@ else
         try
         {
             _state = await Api.GetStateAsync(_gameId.Value);
+            if (_state != null)
+                _activeBoardSize = _state.BoardSize;
         }
         catch (Exception ex)
         {
@@ -223,13 +251,28 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    private static readonly string[] EmojiCodepoints = { "1f436", "1f431", "1f42d", "1f439", "1f430", "1f98a", "1f43b", "1f43c", "1f428", "1f42f", "1f981", "1f42e", "1f437", "1f438", "1f435", "1f414", "1f427", "1f426", "1f424", "1f984", "1f434" };
-    private const string TwemojiBase = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72";
+    private static readonly string[] EmojiCodepoints =
+    {
+        "1f436", "1f431", "1f42d", "1f439", "1f430", "1f98a", "1f43b", "1f43c", "1f428", "1f42f",
+        "1f981", "1f42e", "1f437", "1f438", "1f435", "1f414", "1f427", "1f426", "1f424", "1f984",
+        "1f434", "1f40d", "1f40e", "1f410", "1f411", "1f412", "1f416", "1f417", "1f418", "1f419",
+        "1f41d", "1f41e"
+    };
+    private const string TwemojiBase = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg";
+
+    private string CurrentTurnHint =>
+        _waitingResolve ? "Resolving turn…" :
+        _state?.FlippedCountThisTurn switch
+        {
+            0 => "Pick a card",
+            1 => "Pick a second card",
+            _ => "Turn complete"
+        };
 
     private static string EmojiImageUrl(int? pairId)
     {
         if (pairId == null) return "";
         var i = pairId.Value % EmojiCodepoints.Length;
-        return $"{TwemojiBase}/{EmojiCodepoints[i]}.png";
+        return $"{TwemojiBase}/{EmojiCodepoints[i]}.svg";
     }
 }

@@ -1,0 +1,15 @@
+<div class="message @(AllPairsMatched ? "win" : "lose")" role="alert">
+    <span class="message__icon" aria-hidden="true">@(AllPairsMatched ? "✓" : "✕")</span>
+    <span class="message__text">
+        @(AllPairsMatched ? "You matched every pair — nice work!" : "Out of attempts. Want another round?")
+    </span>
+    <button type="button" class="btn btn--primary btn--inline" @onclick="OnPlayAgain">Play again</button>
+</div>
+
+@code {
+    [Parameter]
+    public bool AllPairsMatched { get; set; }
+
+    [Parameter]
+    public EventCallback OnPlayAgain { get; set; }
+}

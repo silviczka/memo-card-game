@@ -4,7 +4,7 @@ A browser-based memory game built with .NET 8. Game rules, scoring, and state ar
 
 ## Features
 
-- Configurable board size (2×2, 4×4, 6×6) and optional attempt limit
+- Configurable board size (4×4, 6×6, 8×8) and optional attempt limit
 - Server-enforced rules: two flips per turn, no flipping matched cards, invalid moves rejected
 - Persistence with EF Core and SQLite (game state can be saved and resumed)
 - Blazor WebAssembly UI served by the same ASP.NET Core application
@@ -54,7 +54,7 @@ Unit tests cover game rules (flip validation, scoring, game completion).
 - **MemoCardGame.Application** — Game service, factory, move validation, DTOs
 - **MemoCardGame.Infrastructure** — Persistence (EF Core, SQLite, repository)
 - **MemoCardGame.Api** — Web API and host for the Blazor client
-- **MemoCardGame.Client** — Blazor WebAssembly frontend
+- **MemoCardGame.Client** — Blazor WebAssembly frontend (`Pages`, `wwwroot`, `Shared` components)
 - **MemoCardGame.Tests** — Unit tests
 
 ## Deployment

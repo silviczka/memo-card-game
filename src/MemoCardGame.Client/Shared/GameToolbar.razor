@@ -1,0 +1,55 @@
+@if (Compact)
+{
+    <div class="game-toolbar game-toolbar--8">
+        <button type="button" class="btn btn--ghost" @onclick="OnMenu">← Menu</button>
+        @if (ShowFinishedStats)
+        {
+            <GameStats Score="@Score"
+                       MoveCount="@MoveCount"
+                       MaxAttempts="@MaxAttempts"
+                       AttemptsLabel="Att."
+                       CssClass="stats--toolbar stats--toolbar-finished8"
+                       ItemCssClass="stat-pill--toolbar"
+                       Announce="true" />
+        }
+    </div>
+}
+else
+{
+    <div class="game-toolbar">
+        <button type="button" class="btn btn--ghost" @onclick="OnMenu">← Menu</button>
+        @if (ShowHint)
+        {
+            <span class="toolbar-hint @(ShowPulse ? "toolbar-hint__pulse" : "")" aria-live="polite">@HintText</span>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool Compact { get; set; }
+
+    [Parameter]
+    public bool ShowHint { get; set; }
+
+    [Parameter]
+    public bool ShowPulse { get; set; }
+
+    [Parameter]
+    public string HintText { get; set; } = "";
+
+    [Parameter]
+    public bool ShowFinishedStats { get; set; }
+
+    [Parameter]
+    public int Score { get; set; }
+
+    [Parameter]
+    public int MoveCount { get; set; }
+
+    [Parameter]
+    public int? MaxAttempts { get; set; }
+
+    [Parameter]
+    public EventCallback OnMenu { get; set; }
+}

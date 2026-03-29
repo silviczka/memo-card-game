@@ -1,57 +1,120 @@
 # Deployment
 
-This solution supports two deployment patterns.
+This project can be deployed in two simple ways.
 
-## Option 1: Single host
+## Option 1: One host for everything
 
-Deploy `MemoCardGame.Api` to a single host. It serves both the REST API and the Blazor WebAssembly client.
+Deploy `MemoCardGame.Api` to one host. It serves:
 
-For this mode, use an empty `ApiBaseUrl` in `MemoCardGame.Client/wwwroot/appsettings.json` and `appsettings.Production.json` before you publish the API (or Docker build), so the client calls the same origin as the page.
+- the REST API
+- the Blazor WebAssembly client
 
-Suggested hosts:
+This is the simplest setup.
+Typical choices for this setup are Koyeb, Render, or Railway.
 
-- **Koyeb** — Build from the `Dockerfile` at the repository root.
-- **Railway** — Connect GitHub, use `src/MemoCardGame.Api` as the service root, or deploy from the root `Dockerfile`.
-- **Fly.io** — Run `fly launch` from the repository root and use the existing `Dockerfile`.
-- **Render** — Create a Web Service and publish `src/MemoCardGame.Api`.
+### Config
 
-Pricing and free-plan policies change frequently, so check the official pages before choosing:
+Keep `ApiBaseUrl` empty in:
 
-- Railway: [pricing / free trial](https://docs.railway.com/reference/pricing/free-trial)
-- Render: [free plan](https://render.com/free)
-- Fly.io: [pricing](https://fly.io/docs/about/pricing/)
-- Koyeb: [pricing FAQ](https://www.koyeb.com/docs/faqs/pricing)
+- `src/MemoCardGame.Client/wwwroot/appsettings.json`
+- `src/MemoCardGame.Client/wwwroot/appsettings.Production.json`
 
-## Option 2: Static client, API elsewhere
+That makes the client call the same origin as the page.
 
-Publish the Blazor WebAssembly client as static files and host the API separately.
+### Example
+
+Koyeb can build and run the root `Dockerfile`.
+
+## Option 2: Static client + separate API
+
+Use this when you want:
+
+- the client on a static host
+- the API on another host
+
+This works well for Blazor WebAssembly because the published client is a set of static files.
+
+Typical choices:
+
+- Client host: Vercel, Netlify, Cloudflare Pages
+- API host: Koyeb, Render, Railway
+
+### Steps
 
 1. Deploy the API and note its public URL.
+2. Set `ApiBaseUrl` in `src/MemoCardGame.Client/wwwroot/appsettings.Production.json` to that API URL.
+3. Set `Cors:AllowedOrigins` in `src/MemoCardGame.Api/appsettings.Production.json` to your frontend URL.
+4. Publish the client:
 
-2. Set `ApiBaseUrl` in `src/MemoCardGame.Client/wwwroot/appsettings.Production.json` to that URL before publishing the client.
+```bash
+dotnet publish src/MemoCardGame.Client -c Release
+```
 
-3. Set `Cors:AllowedOrigins` in `src/MemoCardGame.Api/appsettings.Production.json` to your static frontend origin (replace `https://your-app.vercel.app`).
+Output:
 
-4. (Optional, for PostgreSQL) set `ConnectionStrings__Default` on the API service environment (Koyeb variable). If this value is present, the API uses PostgreSQL; otherwise it falls back to SQLite (`SqlitePath` / `memo.db`).
+`src/MemoCardGame.Client/bin/Release/net8.0/publish/wwwroot/`
 
-   Example:
-   ```text
-   ConnectionStrings__Default=Host=...;Port=5432;Database=...;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true
-   ```
+5. Deploy the contents of that `wwwroot/` folder to your static host.
 
-5. Build the client:
-   ```bash
-   dotnet publish src/MemoCardGame.Client -c Release
-   ```
-   Output: `src/MemoCardGame.Client/bin/Release/net8.0/publish/wwwroot/`.
+For example, on Vercel you deploy the published frontend output and Vercel serves it as a static site.
 
-6. Deploy the contents of `src/MemoCardGame.Client/bin/Release/net8.0/publish/wwwroot/` to your static host.
+## PostgreSQL / Neon
 
-`MemoCardGame.Api/Program.cs` reads `Cors:AllowedOrigins` from configuration; local development keeps `AllowedOrigins` empty in `appsettings.json` so any origin is allowed.
+You only need Neon (or another PostgreSQL host) if you want PostgreSQL instead of SQLite.
+PostgreSQL is usually a better choice for production because it handles concurrent users better, fits remote hosting more naturally, and avoids the common SQLite-on-container problem where local database files may not persist across redeploys unless you add persistent storage.
 
-## Summary
+Set `ConnectionStrings__Default` on the API service environment.
+If it is missing, the app uses SQLite instead.
 
-| Goal                         | Use                          |
-|-----------------------------|------------------------------|
-| Easiest setup | Option 1 (single host) |
-| Static client and separate API | Option 2 |
+Example:
+
+```text
+ConnectionStrings__Default=Host=...;Port=5432;Database=...;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true
+```
+
+## GitHub vs live site
+
+Pushing to GitHub updates the code in the repository.
+It does **not** automatically change the live app unless your host deploys that new commit.
+
+### If you use Option 1
+
+- Push to GitHub
+- Redeploy the API service, or let your API host auto-deploy from Git
+
+Many API hosts such as Koyeb, Render, and Railway can watch your GitHub repository and start a new deployment automatically after a push. In that setup, GitHub Actions are optional.
+
+Even frontend-only changes need a redeploy here, because the client files are included in the API app.
+
+### If you use Option 2
+
+- Push to GitHub
+- Republish and redeploy the client when UI changes
+  For example, if your client is on Vercel and auto-deploy from Git is enabled, a new push can trigger that deploy automatically. Users see the new UI after Vercel finishes that deployment.
+- Redeploy the API only when backend code, CORS, or environment settings change
+
+The same idea applies to the API host: if auto-deploy from Git is enabled, a push can trigger the API deployment automatically. Without auto-deploy, you need to redeploy the API manually.
+
+## GitHub Actions (optional)
+
+This repository does not currently include a GitHub Actions deployment workflow.
+
+You only need GitHub Actions if you want a custom CI/CD pipeline. Common reasons are:
+
+- run tests before deployment
+- build artifacts in GitHub
+- deploy through a provider CLI or API instead of the host's built-in Git integration
+
+Typical setup:
+
+1. Add a workflow file in `.github/workflows/`.
+2. Trigger it on `push` to `main`.
+3. Run `dotnet build` and `dotnet test`.
+4. If successful, call the deployment step for your host.
+
+If your host already supports auto-deploy from GitHub and that is enough for your needs, you can usually skip GitHub Actions.
+
+### When do you need Neon changes?
+
+Only when database configuration or schema changes.
+You do **not** need Neon changes for CSS, Razor, or other frontend-only work.

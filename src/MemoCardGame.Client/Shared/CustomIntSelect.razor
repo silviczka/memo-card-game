@@ -1,0 +1,112 @@
+@using System.Globalization
+
+<div class="field custom-int-select @(IsOpen ? "custom-int-select--open" : "")" @onkeydown="OnKeyDown">
+    <label class="field__label" for="@_triggerId" id="@_labelId">@Label</label>
+    <div class="custom-int-select__wrap">
+        @if (IsOpen)
+        {
+            <button type="button"
+                    class="custom-int-select__backdrop"
+                    tabindex="-1"
+                    aria-hidden="true"
+                    @onclick="Close"></button>
+        }
+        <button type="button"
+                class="custom-int-select__trigger field__input field__input--start"
+                id="@_triggerId"
+                aria-labelledby="@_labelId"
+                aria-haspopup="listbox"
+                aria-expanded="@(IsOpen ? "true" : "false")"
+                aria-controls="@_listId"
+                @onclick="Toggle"
+                @onclick:stopPropagation="true">
+            <span class="custom-int-select__value">@CurrentLabel</span>
+        </button>
+        @if (IsOpen)
+        {
+            <div class="custom-int-select__panel"
+                 id="@_listId"
+                 role="listbox"
+                 tabindex="-1"
+                 @onclick:stopPropagation="true"
+                 @onkeydown="OnPanelKeyDown">
+                @foreach (var opt in Options)
+                {
+                    var selected = opt.Value == Value;
+                    <button type="button"
+                            role="option"
+                            aria-selected="@(selected ? "true" : "false")"
+                            class="custom-int-select__option @(selected ? "custom-int-select__option--selected" : "")"
+                            @onclick="() => SelectAsync(opt.Value)">
+                        @opt.Label
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
+
+    private readonly string _labelId = "cs-l-" + Guid.NewGuid().ToString("n")[..8];
+    private readonly string _triggerId = "cs-t-" + Guid.NewGuid().ToString("n")[..8];
+    private readonly string _listId = "cs-p-" + Guid.NewGuid().ToString("n")[..8];
+
+    [Parameter, EditorRequired]
+    public string Label { get; set; } = "";
+
+    [Parameter]
+    public IReadOnlyList<IntSelectOption> Options { get; set; } = Array.Empty<IntSelectOption>();
+
+    [Parameter]
+    public int Value { get; set; }
+
+    [Parameter]
+    public EventCallback<int> ValueChanged { get; set; }
+
+    private bool IsOpen { get; set; }
+
+    private string CurrentLabel
+    {
+        get
+        {
+            foreach (var o in Options)
+            {
+                if (o.Value == Value)
+                    return o.Label;
+            }
+
+            return Value.ToString(Inv);
+        }
+    }
+
+    private void Toggle()
+    {
+        IsOpen = !IsOpen;
+    }
+
+    private void Close()
+    {
+        IsOpen = false;
+    }
+
+    private async Task SelectAsync(int v)
+    {
+        Value = v;
+        await ValueChanged.InvokeAsync(v);
+        IsOpen = false;
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape" && IsOpen)
+            IsOpen = false;
+    }
+
+    private void OnPanelKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            IsOpen = false;
+    }
+}

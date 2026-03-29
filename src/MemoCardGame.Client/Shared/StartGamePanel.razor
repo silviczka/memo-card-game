@@ -1,0 +1,54 @@
+<section class="panel panel--start panel--narrow" aria-label="Start game">
+    <div class="panel__inner panel__inner--start">
+        <h2 class="panel__title">New game</h2>
+        <p class="panel__hint">Pick a board size and play.</p>
+        <div class="controls controls--start controls--start-tight">
+            <CustomIntSelect Label="Board" Options="@BoardSizeOptions" Value="@BoardSize" ValueChanged="@BoardSizeChanged" />
+            <label class="check">
+                <input type="checkbox" checked="@UseMaxAttempts" @onchange="OnUseMaxAttemptsChanged" class="check__input" />
+                <span class="check__box" aria-hidden="true"></span>
+                <span class="check__text">Limit attempts</span>
+            </label>
+            @if (UseMaxAttempts)
+            {
+                <CustomIntSelect Label="Max attempts" Options="@MaxAttemptOptions" Value="@MaxAttempts" ValueChanged="@MaxAttemptsChanged" />
+            }
+        </div>
+        <button type="button" class="btn btn--primary btn--start-game" @onclick="OnStart">Start game</button>
+    </div>
+</section>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<IntSelectOption> BoardSizeOptions { get; set; } = Array.Empty<IntSelectOption>();
+
+    [Parameter]
+    public IReadOnlyList<IntSelectOption> MaxAttemptOptions { get; set; } = Array.Empty<IntSelectOption>();
+
+    [Parameter]
+    public int BoardSize { get; set; }
+
+    [Parameter]
+    public EventCallback<int> BoardSizeChanged { get; set; }
+
+    [Parameter]
+    public bool UseMaxAttempts { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> UseMaxAttemptsChanged { get; set; }
+
+    [Parameter]
+    public int MaxAttempts { get; set; }
+
+    [Parameter]
+    public EventCallback<int> MaxAttemptsChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnStart { get; set; }
+
+    private async Task OnUseMaxAttemptsChanged(ChangeEventArgs e)
+    {
+        var value = e.Value is bool b && b;
+        await UseMaxAttemptsChanged.InvokeAsync(value);
+    }
+}

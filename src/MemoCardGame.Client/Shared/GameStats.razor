@@ -1,0 +1,40 @@
+<div class="stats @CssClass" role="@(Announce ? "status" : null)">
+    <div class="stat-pill @ItemCssClass">
+        <span class="stat-pill__label">Score</span>
+        <span class="stat-pill__value">@Score</span>
+    </div>
+    <div class="stat-pill @ItemCssClass">
+        <span class="stat-pill__label">Moves</span>
+        <span class="stat-pill__value">@MoveCount</span>
+    </div>
+    @if (MaxAttempts.HasValue)
+    {
+        <div class="stat-pill stat-pill--accent @ItemCssClass">
+            <span class="stat-pill__label">@AttemptsLabel</span>
+            <span class="stat-pill__value">@MoveCount / @MaxAttempts</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int Score { get; set; }
+
+    [Parameter]
+    public int MoveCount { get; set; }
+
+    [Parameter]
+    public int? MaxAttempts { get; set; }
+
+    [Parameter]
+    public string AttemptsLabel { get; set; } = "Attempts";
+
+    [Parameter]
+    public string CssClass { get; set; } = "";
+
+    [Parameter]
+    public string ItemCssClass { get; set; } = "";
+
+    [Parameter]
+    public bool Announce { get; set; }
+}
