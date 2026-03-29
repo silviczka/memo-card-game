@@ -8,6 +8,7 @@
 memoCards_build/
 
 # IDE
+.cursor/
 .vs/
 .vscode/
 *.user
@@ -26,3 +27,4 @@ secrets.json
 # OS
 .DS_Store
 Thumbs.db
+.vercel
