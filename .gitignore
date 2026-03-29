@@ -30,4 +30,4 @@ Thumbs.db
 .vercel
 
 # Local Lighthouse exports
-docs/perfstats/*.json
+docs/perfstats/

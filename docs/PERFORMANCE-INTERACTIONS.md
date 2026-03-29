@@ -15,10 +15,18 @@ This file records runtime interaction measurements from Chrome DevTools Performa
 
 ## Recordings Reviewed
 
+### Before improvements
+
 - `perf_startgame_awake_Trace-20260329T200654.json.gz`
 - `perf_flip_single_Trace-20260329T201710.json.gz`
 - `perf_flip_turn 2cards_not match_Trace-20260329T201958.json.gz`
 - `perf_flip_1st turn 2cards_not match_Trace-20260329T202059.json.gz`
+
+### After warm-up and request-path improvements
+
+- `1st improvement_start game_Trace-20260329T211142.json.gz`
+- `1st improvement_2 turns - 4 cards revelaed_Trace-20260329T211232.json.gz`
+- `1st imprevement_ startgame after short inactivity_Trace-20260329T212723.json.gz`
 
 ## Summary
 
@@ -73,6 +81,45 @@ This file records runtime interaction measurements from Chrome DevTools Performa
 - Added lightweight timing logs on the API and in the client request methods.
 - Removed repeated card sorting in `Index.razor`.
 - Replaced repeated mismatch overlay list scans in `GameBoard.razor` with a dictionary lookup.
+
+## Results After Improvements
+
+### Start game when the API was warm
+
+- `POST /games` started about `54 ms` after the click.
+- `POST /games` completed in about `107 ms`.
+- The earlier follow-up `GET /games/{id}` is no longer part of the normal `Start game` path.
+- Compared with the earlier recording, this is a very large improvement from roughly `9.45 s` total down to about `0.11 s` for the main request path.
+
+### Start game after short inactivity
+
+- This recording was taken after roughly `5-10 minutes` of inactivity.
+- `POST /games` started about `55 ms` after the click.
+- `POST /games` completed in about `2.53 s`.
+- This is still much faster than the earlier baseline, but it shows that short inactivity can still lead to a noticeable delay.
+
+### Two turns after improvements
+
+- Turn 1: first flip about `301 ms`, second flip about `240 ms`, resolve about `94 ms`.
+- Turn 2: first flip about `96 ms`, second flip about `138 ms`, resolve about `101 ms`.
+- The biggest visible improvement is the resolve call, which dropped from roughly `474-495 ms` before to about `94-101 ms` after the server-side request-path cleanup.
+
+## Comparison Summary
+
+| Interaction | Before | After | What changed |
+|------------|--------|-------|--------------|
+| Start game, warm | `POST /games` ~8.5 s + `GET /games/{id}` ~0.89 s | `POST /games` ~0.11 s | Warm-up helped and the extra state-loading request was removed. |
+| Start game, after short inactivity | not recorded in the original set | `POST /games` ~2.53 s | Still noticeably slower than fully warm, but much better than the old start flow. |
+| First recorded turn | flips ~0.30 s and ~0.35 s, resolve ~0.47 s | turn 1 flips ~0.30 s and ~0.24 s, resolve ~0.09 s | Resolve got much faster after removing redundant server reloads. |
+| Later turn | flips ~0.15 s and ~0.19 s, resolve ~0.49 s | turn 2 flips ~0.10 s and ~0.14 s, resolve ~0.10 s | Later turns became more consistent and resolve latency dropped sharply. |
+
+## Updated Conclusions
+
+- The implemented changes clearly improved runtime interaction performance.
+- The browser main thread still does not look like the primary bottleneck.
+- The biggest remaining risk is backend sleep or warm-up time after inactivity.
+- In a fully warm state, the app now responds much faster.
+- In a semi-idle state, `Start game` can still feel too slow for a game, which points more to hosting behavior than to browser rendering.
 
 ## Next Checks
 
