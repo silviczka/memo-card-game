@@ -12,9 +12,20 @@ var builder = WebApplication.CreateBuilder(args);
 if (string.IsNullOrEmpty(builder.WebHost.GetSetting("urls")))
     builder.WebHost.UseUrls("http://localhost:5000;https://localhost:5001");
 
+var contentRoot = builder.Environment.ContentRootPath;
+var configuredSqlite = builder.Configuration["SqlitePath"];
+var relativeDefault = Path.Combine("..", "..", "data", "memo.db");
+var sqliteRaw = string.IsNullOrWhiteSpace(configuredSqlite) ? relativeDefault : configuredSqlite.Trim();
+var sqlitePath = Path.IsPathRooted(sqliteRaw)
+    ? sqliteRaw
+    : Path.GetFullPath(Path.Combine(contentRoot, sqliteRaw));
+var sqliteDir = Path.GetDirectoryName(sqlitePath);
+if (!string.IsNullOrEmpty(sqliteDir))
+    Directory.CreateDirectory(sqliteDir);
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(
-    builder.Configuration["SqlitePath"] ?? "memo.db",
+    sqlitePath,
     builder.Configuration.GetConnectionString("Default"));
 
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()?
