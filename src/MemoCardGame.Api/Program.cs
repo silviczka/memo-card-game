@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using MemoCardGame.Api;
 using MemoCardGame.Application;
 using MemoCardGame.Infrastructure;
@@ -62,7 +63,16 @@ app.Use(async (context, next) =>
 });
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
-app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/healthz", () =>
+{
+    var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
+    return Results.Ok(new
+    {
+        status = "ok",
+        service = "MemoCardGame.Api",
+        version
+    });
+});
 app.MapApi();
 app.MapFallbackToFile("index.html");
 
