@@ -4,34 +4,35 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Memo Card Game</title>
-    <meta name="description" content="Browser memory game with server-backed rules. Pick board size, flip two cards per turn, and match every pair." />
+    <meta name="description" content="Play Memo Card Game in your browser with pictures or sounds. Choose a mode, pick a board size, and have fun." />
     <link rel="canonical" href="https://memocardgame.vercel.app/" />
 
-    <!-- Open Graph (Facebook, LinkedIn, Discord, iMessage, etc.) — crawlers read this static HTML; use absolute URLs -->
+    <!-- OG images: og-image-picture-sound.png = dual-mode share art (linked below). og-image.png = classic card row only - swap URLs to regress previews. -->
+    <!-- Open Graph (Facebook, LinkedIn, Discord, iMessage, etc.) - crawlers read this static HTML; use absolute URLs -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:site_name" content="Memo Card Game" />
-    <meta property="og:title" content="Memo Card Game" />
-    <meta property="og:description" content="Browser memory game with server-backed rules. Pick board size, flip two cards per turn, and match every pair." />
+    <meta property="og:title" content="Memo Card Game - pictures or sounds" />
+    <meta property="og:description" content="Play Memo Card Game in your browser with pictures or sounds. Choose a mode, pick a board size, and have fun." />
     <meta property="og:url" content="https://memocardgame.vercel.app/" />
-    <meta property="og:image" content="https://memocardgame.vercel.app/og-image.png" />
+    <meta property="og:image" content="https://memocardgame.vercel.app/og-image-picture-sound.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Memo Card Game — match pairs in your browser" />
+    <meta property="og:image:alt" content="Memo Card Game: match pairs with pictures or sounds in the browser" />
 
     <!-- Twitter / X -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Memo Card Game" />
-    <meta name="twitter:description" content="Browser memory game with server-backed rules. Pick board size, flip two cards per turn, and match every pair." />
-    <meta name="twitter:image" content="https://memocardgame.vercel.app/og-image.png" />
-    <meta name="twitter:image:alt" content="Memo Card Game — match pairs in your browser" />
+    <meta name="twitter:title" content="Memo Card Game - pictures or sounds" />
+    <meta name="twitter:description" content="Play Memo Card Game in your browser with pictures or sounds. Choose a mode, pick a board size, and have fun." />
+    <meta name="twitter:image" content="https://memocardgame.vercel.app/og-image-picture-sound.png" />
+    <meta name="twitter:image:alt" content="Memo Card Game: match pairs with pictures or sounds in the browser" />
 
     <meta name="theme-color" content="#0f172a" />
     <meta name="color-scheme" content="dark" />
     <base href="/" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <!-- API host (must match wwwroot/appsettings.Production.json ApiBaseUrl) — saves TLS handshake on first game request -->
+    <!-- API host (must match wwwroot/appsettings.Production.json ApiBaseUrl) - saves TLS handshake on first game request -->
     <link rel="preconnect" href="https://pexeso.ff0000.cz" crossorigin />
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

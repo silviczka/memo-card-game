@@ -31,3 +31,9 @@ Thumbs.db
 
 # Local Lighthouse exports
 docs/perfstats/
+
+# Node (optional local tooling under scripts/ — run npm ci there; never commit deps)
+scripts/node_modules/
+
+# Accidental npm package tarballs at repo root
+/sharp-*.tgz

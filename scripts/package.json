@@ -1,0 +1,7 @@
+{
+  "name": "memo-card-game-scripts",
+  "private": true,
+  "dependencies": {
+    "sharp": "^0.34.5"
+  }
+}

@@ -1,9 +1,10 @@
 # Memo Card Game
 
-A browser-based memory game built with .NET 8. Game rules, scoring, and state are handled on the server, while the client interacts through a REST API.
+A browser-based memory game built with .NET 8. Match pairs using **pictures** or **sounds** - same rules and flow for both modes. Game rules, scoring, and state are handled on the server, while the client interacts through a REST API.
 
 ## Features
 
+- **Picture or sound mode** - choose how you match pairs; the rest of the game flow is unchanged
 - Configurable board size (4×4, 6×6, 8×8) and optional attempt limit
 - Server-enforced rules: two flips per turn, no flipping matched cards, invalid moves rejected
 - Persistence with EF Core and SQLite (game state can be saved and resumed)
@@ -50,12 +51,12 @@ Unit tests cover game rules (flip validation, scoring, game completion).
 
 ## Project Structure
 
-- **MemoCardGame.Domain** — Game, Card, Turn, scoring rules (no external dependencies)
-- **MemoCardGame.Application** — Game service, factory, move validation, DTOs
-- **MemoCardGame.Infrastructure** — Persistence (EF Core, SQLite, repository)
-- **MemoCardGame.Api** — Web API and host for the Blazor client
-- **MemoCardGame.Client** — Blazor WebAssembly frontend (`Pages`, `wwwroot`, `Shared` components)
-- **MemoCardGame.Tests** — Unit tests
+- **MemoCardGame.Domain** - Game, Card, Turn, scoring rules (no external dependencies)
+- **MemoCardGame.Application** - Game service, factory, move validation, DTOs
+- **MemoCardGame.Infrastructure** - Persistence (EF Core, SQLite, repository)
+- **MemoCardGame.Api** - Web API and host for the Blazor client
+- **MemoCardGame.Client** - Blazor WebAssembly frontend (`Pages`, `wwwroot`, `Shared` components)
+- **MemoCardGame.Tests** - Unit tests
 
 ## Deployment
 
