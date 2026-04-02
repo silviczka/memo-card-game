@@ -2,15 +2,17 @@
 
 <header class="game-header">
     <h1 class="game-title">Memo</h1>
-    <p class="game-tagline">Match the pairs — quick, calm, and sharp.</p>
+    <p class="game-tagline">Flip two at a time and match every pair.</p>
 </header>
 
 @if (_gameId == null)
 {
-    <StartGamePanel BoardSizeOptions="@BoardSizeOptions"
+    <StartGamePanel BoardSizeOptions="@CurrentBoardSizeOptions"
                     MaxAttemptOptions="@MaxAttemptOptions"
                     BoardSize="@_boardSize"
                     BoardSizeChanged="@(v => _boardSize = v)"
+                    AudioMode="@_audioMode"
+                    AudioModeChanged="OnAudioModeChanged"
                     UseMaxAttempts="@_useMaxAttempts"
                     UseMaxAttemptsChanged="@(v => _useMaxAttempts = v)"
                     MaxAttempts="@_maxAttempts"
@@ -45,6 +47,20 @@ else
 
     @if (_state != null)
     {
+        @if (_audioMode)
+        {
+            <div class="audio-help-row">
+                <label class="check check--hint-toggle-compact">
+                    <input type="checkbox" checked="@_showAudioColorHints" @onchange="OnAudioHintsChanged" class="check__input" />
+                    <span class="check__box" aria-hidden="true"></span>
+                    <span class="check__text">Color hints</span>
+                </label>
+                <span class="info-tip" tabindex="0" aria-label="Need help? Show a color dot and matching letter for each sound pair.">
+                    ?
+                    <span class="info-tip__bubble" role="tooltip">Need help? Matching pairs share the same color and letter.</span>
+                </span>
+            </div>
+        }
         @if (_state.IsFinished)
         {
             <GameStatusMessage AllPairsMatched="@_state.AllPairsMatched" OnPlayAgain="NewGame" />
@@ -67,6 +83,10 @@ else
                                    IsFinished="@_state.IsFinished"
                                    FlippedCountThisTurn="@_state.FlippedCountThisTurn"
                                    OnFlip="Flip"
+                                   AudioMode="@_audioMode"
+                                   ShowAudioHints="@_showAudioColorHints"
+                                   PairColorHint="PairColorHint"
+                                   PairHintMark="PairHintMark"
                                    EmojiUrl="EmojiImageUrl" />
                     </div>
                 </div>
@@ -81,6 +101,10 @@ else
                                IsFinished="@_state.IsFinished"
                                FlippedCountThisTurn="@_state.FlippedCountThisTurn"
                                OnFlip="Flip"
+                               AudioMode="@_audioMode"
+                               ShowAudioHints="@_showAudioColorHints"
+                               PairColorHint="PairColorHint"
+                               PairHintMark="PairHintMark"
                                EmojiUrl="EmojiImageUrl" />
                 </div>
             }

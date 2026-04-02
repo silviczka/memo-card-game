@@ -28,6 +28,7 @@
     <meta name="twitter:image:alt" content="Memo Card Game — match pairs in your browser" />
 
     <meta name="theme-color" content="#0f172a" />
+    <meta name="color-scheme" content="dark" />
     <base href="/" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <!-- API host (must match wwwroot/appsettings.Production.json ApiBaseUrl) — saves TLS handshake on first game request -->
@@ -43,6 +44,22 @@
     <div id="app">
         <div class="loading">Loading...</div>
     </div>
+    <script>
+        window.memoAudio = window.memoAudio || {
+            _cache: new Map(),
+            play: function (src) {
+                if (!src) return;
+                let audio = this._cache.get(src);
+                if (!audio) {
+                    audio = new Audio(src);
+                    audio.preload = "auto";
+                    this._cache.set(src, audio);
+                }
+                audio.currentTime = 0;
+                audio.play().catch(function () { });
+            }
+        };
+    </script>
     <script src="_framework/blazor.webassembly.js"></script>
 </body>
 </html>

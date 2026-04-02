@@ -61,6 +61,10 @@ Unit tests cover game rules (flip validation, scoring, game completion).
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for deployment options. The repository root includes a `Dockerfile` that publishes `MemoCardGame.Api`.
 
+## Audio
+
+Sound files used in the game were sourced from [OpenGameArt.org](https://opengameart.org/) and [Freesound.org](https://freesound.org/) under **CC0** (public domain dedication) only.
+
 ## License
 
 MIT

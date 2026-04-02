@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MemoCardGame.Client.Shared;
 
 namespace MemoCardGame.Client.Pages;
@@ -7,12 +8,19 @@ public partial class Index : ComponentBase
 {
     [Inject]
     public GameApiClient Api { get; set; } = default!;
+    [Inject]
+    public IJSRuntime Js { get; set; } = default!;
 
     private static readonly IntSelectOption[] BoardSizeOptions =
     {
         new(4, "4×4 — classic"),
         new(6, "6×6 — challenge"),
         new(8, "8×8 — marathon")
+    };
+    private static readonly IntSelectOption[] AudioBoardSizeOptions =
+    {
+        new(4, "4×4 — animals"),
+        new(6, "6×6 — FX")
     };
 
     private static readonly IntSelectOption[] MaxAttemptOptions =
@@ -30,6 +38,11 @@ public partial class Index : ComponentBase
         "1f434", "1f40d", "1f40e", "1f410", "1f411", "1f412", "1f416", "1f417", "1f418", "1f419",
         "1f41d", "1f41e"
     };
+    private static readonly string[] AnimalAudioFiles =
+    {
+        "bird.mp3", "cat.mp3", "cockatiel.mp3", "dog.mp3",
+        "hen.mp3", "peacock.mp3", "sheep.mp3", "volture.mp3"
+    };
 
     private Guid? _gameId;
     private GameStateDto? _state;
@@ -42,6 +55,15 @@ public partial class Index : ComponentBase
     private bool _useMaxAttempts;
     private int _maxAttempts = 20;
     private Task? _warmupTask;
+    private bool _audioMode;
+    private bool _showAudioColorHints;
+
+    private static readonly string[] AudioHintColors =
+    {
+        "#fecdd3", "#ffd6a8", "#fef3c7", "#fde68a", "#fdba74", "#fab1a0", "#ecfccb", "#d9f99d",
+        "#bbf7d0", "#86efac", "#5eead4", "#fde047", "#93c5fd", "#7dd3fc", "#c4b5fd", "#f9a8d4",
+        "#fda4af", "#fcd34d"
+    };
 
     private const int MismatchDisplayMs = 3000;
     private const string TwemojiBase = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg";
@@ -54,6 +76,8 @@ public partial class Index : ComponentBase
             1 => "Pick a second card",
             _ => "Turn complete"
         };
+
+    private IReadOnlyList<IntSelectOption> CurrentBoardSizeOptions => _audioMode ? AudioBoardSizeOptions : BoardSizeOptions;
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
@@ -118,6 +142,7 @@ public partial class Index : ComponentBase
         try
         {
             _state = await Api.FlipAsync(_gameId.Value, cardId);
+            await PlayCardAudioAsync(cardId, _state);
             if (_state != null && _state.FlippedCountThisTurn == 2 && !_state.IsFinished)
                 _ = ResolveAfterDelayAsync(_state);
         }
@@ -194,6 +219,80 @@ public partial class Index : ComponentBase
         {
             // Warm-up is best-effort only. The real request path will still surface any errors.
         }
+    }
+
+    private Task OnAudioModeChanged(bool audioMode)
+    {
+        _audioMode = audioMode;
+
+        // Audio mode currently supports 4x4 and 6x6 only.
+        if (_audioMode && _boardSize > 6)
+            _boardSize = 6;
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnAudioHintsChanged(ChangeEventArgs e)
+    {
+        _showAudioColorHints = e.Value is bool b && b;
+        return Task.CompletedTask;
+    }
+
+    private string PairColorHint(int? pairId)
+    {
+        if (pairId == null)
+            return "#64748b";
+
+        return AudioHintColors[pairId.Value % AudioHintColors.Length];
+    }
+
+    private string PairHintMark(int? pairId)
+    {
+        if (pairId == null)
+            return "";
+
+        var i = pairId.Value % AudioHintColors.Length;
+        return ((char)('A' + i)).ToString();
+    }
+
+    private async Task PlayCardAudioAsync(Guid cardId, GameStateDto? state)
+    {
+        if (!_audioMode || state == null)
+            return;
+
+        var card = state.Cards.FirstOrDefault(c => c.Id == cardId);
+        if (card?.PairId == null)
+            return;
+
+        var url = AudioFileUrl(card.PairId.Value, state.BoardSize);
+        if (string.IsNullOrEmpty(url))
+            return;
+
+        try
+        {
+            await Js.InvokeVoidAsync("memoAudio.play", url);
+        }
+        catch
+        {
+            // Audio is best-effort and should never block gameplay.
+        }
+    }
+
+    private static string AudioFileUrl(int pairId, int boardSize)
+    {
+        if (boardSize == 4)
+        {
+            var index = pairId % AnimalAudioFiles.Length;
+            return $"/audio/animals/{AnimalAudioFiles[index]}";
+        }
+
+        if (boardSize == 6)
+        {
+            var index = (pairId % 18) + 1;
+            return $"/audio/fx/{index}.mp3";
+        }
+
+        return "";
     }
 
     private static string EmojiImageUrl(int? pairId)

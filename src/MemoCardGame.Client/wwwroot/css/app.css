@@ -220,6 +220,102 @@ body::after {
     max-width: none;
 }
 
+.mode-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.mode-toggle__btn {
+    min-height: 2.3rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(15, 23, 42, 0.55);
+    color: #e2e8f0;
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s ease, box-shadow 0.2s;
+}
+
+.mode-toggle__btn:hover {
+    border-color: rgba(34, 211, 238, 0.65);
+    background: rgba(15, 23, 42, 0.8);
+}
+
+.mode-toggle__btn.is-active {
+    border-color: rgba(34, 211, 238, 0.85);
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.35), rgba(34, 211, 238, 0.3));
+    color: #f8fafc;
+    box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.35);
+}
+
+.audio-help-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0 0 0.6rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    background: rgba(8, 12, 20, 0.55);
+}
+
+.check--hint-toggle-compact {
+    margin: 0;
+    padding: 0;
+    font-size: 0.83rem;
+}
+
+.check--hint-toggle-compact .check__box {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.info-tip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 50%;
+    border: 1px solid rgba(148, 163, 184, 0.55);
+    color: #cbd5e1;
+    font-size: 0.74rem;
+    font-weight: 700;
+    cursor: help;
+    user-select: none;
+}
+
+.info-tip__bubble {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    width: 15rem;
+    max-width: min(80vw, 15rem);
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.6rem;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(7, 10, 17, 0.95);
+    color: #e2e8f0;
+    font-size: 0.74rem;
+    line-height: 1.35;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 20;
+}
+
+.info-tip:hover .info-tip__bubble,
+.info-tip:focus-visible .info-tip__bubble {
+    opacity: 1;
+}
+
 .field__input--start {
     width: 100%;
     min-height: 2.75rem;
@@ -348,7 +444,7 @@ select.field__input option {
 
 .custom-int-select__trigger {
     position: relative;
-    z-index: 121;
+    z-index: auto;
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -470,6 +566,7 @@ select.field__input option {
 }
 
 .custom-int-select--open .custom-int-select__trigger {
+    z-index: 121;
     border-color: rgba(34, 211, 238, 0.35);
     box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.15);
 }
@@ -979,6 +1076,59 @@ select.field__input option {
     padding: 0;
     border-radius: calc(var(--radius) - 3px);
     filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+}
+
+.card-audio-face {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: calc(var(--radius) - 3px);
+    background:
+        radial-gradient(ellipse 70% 70% at 30% 25%, rgba(56, 189, 248, 0.24), transparent 65%),
+        radial-gradient(ellipse 80% 80% at 75% 80%, rgba(59, 130, 246, 0.2), transparent 60%),
+        linear-gradient(145deg, #24324a 0%, #1a2537 52%, #151d2c 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-audio-mark {
+    font-family: 'Sora', 'Outfit', system-ui, sans-serif;
+    font-size: clamp(1.2rem, 4.3vw, 1.7rem);
+    font-weight: 700;
+    color: rgba(236, 253, 255, 0.92);
+    letter-spacing: -0.03em;
+    text-shadow: 0 0 16px rgba(34, 211, 238, 0.25);
+}
+
+.card-audio-hint {
+    position: absolute;
+    right: 10%;
+    bottom: 10%;
+    width: 24%;
+    height: 24%;
+    min-width: 0.9rem;
+    min-height: 0.9rem;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(2, 6, 23, 0.45), 0 6px 16px rgba(0, 0, 0, 0.3);
+    color-scheme: dark;
+    forced-color-adjust: none;
+    filter: none !important;
+    -webkit-filter: none !important;
+}
+
+.card-audio-hint svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: none !important;
+    -webkit-filter: none !important;
+}
+
+.card-audio-hint__disc {
+    filter: none !important;
+    -webkit-filter: none !important;
 }
 
 /* Messages */

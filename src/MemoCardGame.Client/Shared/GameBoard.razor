@@ -18,7 +18,27 @@
                     <span class="card-back-mark">?</span>
                 </span>
                 <span class="card-face card-face--front">
-                    <img class="card-emoji-img" src="@EmojiUrl(showPairId)" alt="" loading="lazy" />
+                    @if (AudioMode)
+                    {
+                        var hintColor = PairColorHint(showPairId);
+                        <span class="card-audio-face">
+                            <span class="card-audio-mark">M</span>
+                            @if (ShowAudioHints)
+                            {
+                                var mark = PairHintMark(showPairId);
+                                <span class="card-audio-hint" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" width="100%" height="100%" role="presentation" focusable="false">
+                                        <circle class="card-audio-hint__disc" cx="12" cy="12" r="9" fill="@hintColor" stroke="rgba(248,250,252,0.72)" stroke-width="2" />
+                                        <text x="12" y="12.5" dominant-baseline="middle" text-anchor="middle" fill="#0f172a" fill-opacity="0.82" font-size="11" font-weight="700" font-family="Sora, system-ui, sans-serif">@mark</text>
+                                    </svg>
+                                </span>
+                            }
+                        </span>
+                    }
+                    else
+                    {
+                        <img class="card-emoji-img" src="@EmojiUrl(showPairId)" alt="" loading="lazy" />
+                    }
                 </span>
             </span>
         </button>
@@ -48,6 +68,18 @@
 
     [Parameter]
     public EventCallback<Guid> OnFlip { get; set; }
+
+    [Parameter]
+    public bool AudioMode { get; set; }
+
+    [Parameter]
+    public bool ShowAudioHints { get; set; }
+
+    [Parameter]
+    public Func<int?, string> PairColorHint { get; set; } = static _ => "#64748b";
+
+    [Parameter]
+    public Func<int?, string> PairHintMark { get; set; } = static _ => "";
 
     [Parameter]
     public Func<int?, string> EmojiUrl { get; set; } = static _ => "";

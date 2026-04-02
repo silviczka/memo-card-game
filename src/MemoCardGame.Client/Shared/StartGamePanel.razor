@@ -2,6 +2,20 @@
     <div class="panel__inner panel__inner--start">
         <h2 class="panel__title">New game</h2>
         <p class="panel__hint">Pick a board size and play.</p>
+        <div class="mode-toggle" role="radiogroup" aria-label="Game mode">
+            <button type="button"
+                    class="mode-toggle__btn @(!AudioMode ? "is-active" : "")"
+                    aria-pressed="@(!AudioMode)"
+                    @onclick="() => OnAudioModeChanged(false)">
+                Image cards
+            </button>
+            <button type="button"
+                    class="mode-toggle__btn @(AudioMode ? "is-active" : "")"
+                    aria-pressed="@AudioMode"
+                    @onclick="() => OnAudioModeChanged(true)">
+                Audio cards
+            </button>
+        </div>
         <div class="controls controls--start controls--start-tight">
             <CustomIntSelect Label="Board" Options="@BoardSizeOptions" Value="@BoardSize" ValueChanged="@BoardSizeChanged" />
             <label class="check">
@@ -32,6 +46,12 @@
     public EventCallback<int> BoardSizeChanged { get; set; }
 
     [Parameter]
+    public bool AudioMode { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> AudioModeChanged { get; set; }
+
+    [Parameter]
     public bool UseMaxAttempts { get; set; }
 
     [Parameter]
@@ -50,5 +70,13 @@
     {
         var value = e.Value is bool b && b;
         await UseMaxAttemptsChanged.InvokeAsync(value);
+    }
+
+    private async Task OnAudioModeChanged(bool value)
+    {
+        if (AudioMode == value)
+            return;
+
+        await AudioModeChanged.InvokeAsync(value);
     }
 }
