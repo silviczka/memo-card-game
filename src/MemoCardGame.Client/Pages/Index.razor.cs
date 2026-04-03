@@ -58,11 +58,21 @@ public partial class Index : ComponentBase
     private bool _audioMode;
     private bool _showAudioColorHints;
 
-    private static readonly string[] AudioHintColors =
+    private static readonly string[] AudioHintColors4 =
     {
-        "#fecdd3", "#ffd6a8", "#fef3c7", "#fde68a", "#fdba74", "#fab1a0", "#ecfccb", "#d9f99d",
-        "#bbf7d0", "#86efac", "#5eead4", "#fde047", "#93c5fd", "#7dd3fc", "#c4b5fd", "#f9a8d4",
-        "#fda4af", "#fcd34d"
+        "#FF0000", "#FF8C00", "#FFFF00", "#7CFC00",
+        "#00FFFF", "#1E90FF", "#8A2BE2", "#FF00FF"
+    };
+
+    private static readonly string[] AudioHintColors6 =
+    {
+        "#FF6B6B", "#FFB86C", "#E7FF6B",
+        "#5EE27A", "#44E2FF", "#8F7CFF"
+    };
+
+    private static readonly string[] AudioHintShapes6 =
+    {
+        "circle", "triangle", "square"
     };
 
     private const int MismatchDisplayMs = 3000;
@@ -243,16 +253,28 @@ public partial class Index : ComponentBase
         if (pairId == null)
             return "#64748b";
 
-        return AudioHintColors[pairId.Value % AudioHintColors.Length];
+        var boardSize = _state?.BoardSize ?? _activeBoardSize ?? _boardSize;
+        var colors = boardSize switch
+        {
+            4 => AudioHintColors4,
+            6 => AudioHintColors6,
+            _ => AudioHintColors6
+        };
+
+        return colors[pairId.Value % colors.Length];
     }
 
-    private string PairHintMark(int? pairId)
+    private string PairShapeHint(int? pairId)
     {
         if (pairId == null)
-            return "";
+            return "circle";
 
-        var i = pairId.Value % AudioHintColors.Length;
-        return ((char)('A' + i)).ToString();
+        var boardSize = _state?.BoardSize ?? _activeBoardSize ?? _boardSize;
+        if (boardSize != 6)
+            return "circle";
+
+        var normalizedPairId = Math.Abs(pairId.Value % (AudioHintColors6.Length * AudioHintShapes6.Length));
+        return AudioHintShapes6[normalizedPairId / AudioHintColors6.Length];
     }
 
     private async Task PlayCardAudioAsync(Guid cardId, GameStateDto? state)

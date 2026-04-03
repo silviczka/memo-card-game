@@ -53,11 +53,11 @@ else
                 <label class="check check--hint-toggle-compact">
                     <input type="checkbox" checked="@_showAudioColorHints" @onchange="OnAudioHintsChanged" class="check__input" />
                     <span class="check__box" aria-hidden="true"></span>
-                    <span class="check__text">Color hints</span>
+                    <span class="check__text">Hint markers</span>
                 </label>
-                <span class="info-tip" tabindex="0" aria-label="Need help? Show a color dot and matching letter for each sound pair.">
+                <span class="info-tip" tabindex="0" aria-label="Need help? Show a matching color and shape for each sound pair.">
                     ?
-                    <span class="info-tip__bubble" role="tooltip">Need help? Matching pairs share the same color and letter.</span>
+                    <span class="info-tip__bubble" role="tooltip">Need help? Matching pairs share the same color and shape.</span>
                 </span>
             </div>
         }
@@ -86,7 +86,7 @@ else
                                    AudioMode="@_audioMode"
                                    ShowAudioHints="@_showAudioColorHints"
                                    PairColorHint="PairColorHint"
-                                   PairHintMark="PairHintMark"
+                                   PairShapeHint="PairShapeHint"
                                    EmojiUrl="EmojiImageUrl" />
                     </div>
                 </div>
@@ -104,7 +104,7 @@ else
                                AudioMode="@_audioMode"
                                ShowAudioHints="@_showAudioColorHints"
                                PairColorHint="PairColorHint"
-                               PairHintMark="PairHintMark"
+                               PairShapeHint="PairShapeHint"
                                EmojiUrl="EmojiImageUrl" />
                 </div>
             }
