@@ -50,13 +50,14 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<GameDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await LeaderboardSchemaBootstrapper.EnsureLeaderboardTablesAsync(db);
 }
 
 app.UseCors();
 app.Use(async (context, next) =>
 {
     var path = context.Request.Path;
-    var shouldLog = path.StartsWithSegments("/games") || path.StartsWithSegments("/healthz");
+    var shouldLog = path.StartsWithSegments("/games") || path.StartsWithSegments("/healthz") || path.StartsWithSegments("/api/leaderboard");
     if (!shouldLog)
     {
         await next();
@@ -85,6 +86,7 @@ app.MapGet("/healthz", () =>
     });
 });
 app.MapApi();
+app.MapLeaderboard();
 app.MapFallbackToFile("index.html");
 
 await app.RunAsync();

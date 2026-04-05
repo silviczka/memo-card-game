@@ -16,6 +16,8 @@ public class Game
     public int? MaxAttempts { get; private set; }
     public DateTime StartedAt { get; private set; }
     public DateTime? FinishedAt { get; private set; }
+    /// <summary>"image" or "audio". Persisted for leaderboard cohort.</summary>
+    public string PlayMode { get; private set; } = "image";
 
     public bool IsFinished => FinishedAt.HasValue;
     public int MatchedPairs => _cards.Count(c => c.IsMatched) / 2;
@@ -25,23 +27,33 @@ public class Game
 
     private Game() { }
 
-    public static Game Create(Guid id, int boardSize, int? maxAttempts = null)
+    public static Game Create(Guid id, int boardSize, int? maxAttempts = null, string playMode = "image")
     {
-        if (boardSize < 2 || boardSize % 2 != 0)
-            throw new ArgumentException("Board size must be even and at least 2.", nameof(boardSize));
+        if (boardSize < 2 || boardSize > 10 || boardSize % 2 != 0)
+            throw new ArgumentException("Board size must be an even number between 2 and 10.", nameof(boardSize));
         var totalCells = boardSize * boardSize;
         if (totalCells % 2 != 0)
             throw new ArgumentException("Board must have even number of cells.", nameof(boardSize));
 
+        var mode = NormalizePlayMode(playMode);
         var game = new Game
         {
             Id = id,
             BoardSize = boardSize,
             MaxAttempts = maxAttempts,
-            StartedAt = DateTime.UtcNow
+            StartedAt = DateTime.UtcNow,
+            PlayMode = mode
         };
         game.InitializeCards();
         return game;
+    }
+
+    public static string NormalizePlayMode(string playMode)
+    {
+        if (string.IsNullOrWhiteSpace(playMode))
+            return "image";
+        var m = playMode.Trim().ToLowerInvariant();
+        return m == "audio" ? "audio" : "image";
     }
 
     private void InitializeCards()
@@ -102,8 +114,6 @@ public class Game
             FinishedAt = DateTime.UtcNow;
     }
 
-    public void ForceFinish() => FinishedAt = DateTime.UtcNow;
-
     public GameStateSnapshot ExportState()
     {
         return new GameStateSnapshot
@@ -115,6 +125,7 @@ public class Game
             FinishedAt = FinishedAt,
             Score = Score,
             MoveCount = MoveCount,
+            PlayMode = PlayMode,
             FlippedCardIdsThisTurn = CurrentTurn.FlippedCardIds.ToList(),
             Cards = _cards.Select(c => new CardSnapshot
             {
@@ -138,6 +149,7 @@ public class Game
             FinishedAt = s.FinishedAt,
             Score = s.Score,
             MoveCount = s.MoveCount,
+            PlayMode = string.IsNullOrWhiteSpace(s.PlayMode) ? "image" : NormalizePlayMode(s.PlayMode),
             _cards = s.Cards.Select(Card.FromSnapshot).ToList()
         };
         game.CurrentTurn.SetFlippedForReconstitution(s.FlippedCardIdsThisTurn);

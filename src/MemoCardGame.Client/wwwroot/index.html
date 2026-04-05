@@ -7,7 +7,7 @@
     <meta name="description" content="Play Memo Card Game in your browser with pictures or sounds. Choose a mode, pick a board size, and have fun." />
     <link rel="canonical" href="https://memocardgame.vercel.app/" />
 
-    <!-- OG images: og-image-picture-sound.png = dual-mode share art (linked below). og-image.png = classic card row only - swap URLs to regress previews. -->
+    <!-- Social preview image for picture and sound gameplay. -->
     <!-- Open Graph (Facebook, LinkedIn, Discord, iMessage, etc.) - crawlers read this static HTML; use absolute URLs -->
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />
@@ -46,6 +46,16 @@
         <div class="loading">Loading...</div>
     </div>
     <script>
+        window.memoCookies = window.memoCookies || {
+            get: function (name) {
+                var m = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+                return m ? decodeURIComponent(m[1]) : '';
+            },
+            set: function (name, value, days) {
+                var maxAge = Math.floor(days * 24 * 60 * 60);
+                document.cookie = name + '=' + encodeURIComponent(value) + ';path=/;max-age=' + maxAge + ';SameSite=Lax';
+            }
+        };
         window.memoAudio = window.memoAudio || {
             _cache: new Map(),
             play: function (src) {
@@ -58,6 +68,29 @@
                 }
                 audio.currentTime = 0;
                 audio.play().catch(function () { });
+            }
+        };
+        window.memoCarousel = window.memoCarousel || {
+            enablePointerCapture: function (el) {
+                if (!el || el.__memoPointerCaptureBound) return;
+
+                const capture = function (event) {
+                    if (!event || typeof el.setPointerCapture !== "function") return;
+                    try { el.setPointerCapture(event.pointerId); } catch (_) { }
+                };
+
+                const release = function (event) {
+                    if (!event || typeof el.releasePointerCapture !== "function") return;
+                    try {
+                        if (typeof el.hasPointerCapture === "function" && !el.hasPointerCapture(event.pointerId)) return;
+                        el.releasePointerCapture(event.pointerId);
+                    } catch (_) { }
+                };
+
+                el.addEventListener("pointerdown", capture);
+                el.addEventListener("pointerup", release);
+                el.addEventListener("pointercancel", release);
+                el.__memoPointerCaptureBound = true;
             }
         };
     </script>

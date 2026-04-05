@@ -11,18 +11,6 @@ public partial class Index : ComponentBase
     [Inject]
     public IJSRuntime Js { get; set; } = default!;
 
-    private static readonly IntSelectOption[] BoardSizeOptions =
-    {
-        new(4, "4×4 — classic"),
-        new(6, "6×6 — challenge"),
-        new(8, "8×8 — marathon")
-    };
-    private static readonly IntSelectOption[] AudioBoardSizeOptions =
-    {
-        new(4, "4×4 — animals"),
-        new(6, "6×6 — FX")
-    };
-
     private static readonly IntSelectOption[] MaxAttemptOptions =
     {
         new(10, "10"),
@@ -87,7 +75,8 @@ public partial class Index : ComponentBase
             _ => "Turn complete"
         };
 
-    private IReadOnlyList<IntSelectOption> CurrentBoardSizeOptions => _audioMode ? AudioBoardSizeOptions : BoardSizeOptions;
+    private IReadOnlyList<IntSelectOption> CurrentBoardSizeOptions =>
+        BoardRules.StartOptionsForMode(_audioMode ? "audio" : "image");
 
     protected override Task OnAfterRenderAsync(bool firstRender)
     {
@@ -105,12 +94,21 @@ public partial class Index : ComponentBase
             if (_warmupTask is { IsCompleted: false })
                 await _warmupTask;
 
-            var state = await Api.StartGameAsync(_boardSize, _useMaxAttempts ? _maxAttempts : null);
+            var playMode = _audioMode ? "audio" : "image";
+            var state = await Api.StartGameAsync(_boardSize, _useMaxAttempts ? _maxAttempts : null, playMode);
             if (state != null)
             {
                 _state = state;
                 _gameId = state.Id;
                 _activeBoardSize = state.BoardSize;
+                try
+                {
+                    await Js.InvokeVoidAsync("memoCookies.set", CookieKeys.LastCohort, $"{playMode}:{state.BoardSize}", CookieKeys.DefaultDays);
+                }
+                catch
+                {
+                    // Saving the last-played cohort is optional; keep the game flow even if cookies are unavailable.
+                }
             }
         }
         catch (Exception ex)
@@ -235,9 +233,9 @@ public partial class Index : ComponentBase
     {
         _audioMode = audioMode;
 
-        // Audio mode currently supports 4x4 and 6x6 only.
-        if (_audioMode && _boardSize > 6)
-            _boardSize = 6;
+        var maxAudio = BoardRules.MaxSizeForMode("audio");
+        if (_audioMode && _boardSize > maxAudio)
+            _boardSize = maxAudio;
 
         return Task.CompletedTask;
     }

@@ -3,6 +3,7 @@
 <header class="game-header">
     <h1 class="game-title">Memo</h1>
     <p class="game-tagline">Flip two at a time - match pairs with pictures or sounds.</p>
+    <p class="header-links"><a href="/leaderboard" class="header-links__a">Leaderboard</a></p>
 </header>
 
 @if (_gameId == null)
@@ -63,7 +64,19 @@ else
         }
         @if (_state.IsFinished)
         {
-            <GameStatusMessage AllPairsMatched="@_state.AllPairsMatched" OnPlayAgain="NewGame" />
+            @if (_state.AllPairsMatched)
+            {
+                <WinGamePanel GameId="@_state.Id"
+                              Score="@_state.Score"
+                              MoveCount="@_state.MoveCount"
+                              BoardSize="@_state.BoardSize"
+                              PlayMode="@_state.PlayMode"
+                              OnPlayAgain="NewGame" />
+            }
+            else
+            {
+                <GameStatusMessage AllPairsMatched="@false" OnPlayAgain="NewGame" />
+            }
         }
         else
         {

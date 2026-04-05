@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddScoped<IGameRepository, GameRepository>();
+        services.AddScoped<ILeaderboardService, LeaderboardService>();
         return services;
     }
 }

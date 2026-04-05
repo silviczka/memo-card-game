@@ -12,6 +12,8 @@ public class GameStateSnapshot
     public DateTime? FinishedAt { get; set; }
     public int Score { get; set; }
     public int MoveCount { get; set; }
+    /// <summary>Client-facing mode: "image" or "audio" (stored for leaderboard cohort).</summary>
+    public string? PlayMode { get; set; }
     public List<Guid> FlippedCardIdsThisTurn { get; set; } = new();
     public List<CardSnapshot> Cards { get; set; } = new();
 }

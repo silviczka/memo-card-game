@@ -4,7 +4,7 @@ namespace MemoCardGame.Application;
 
 public interface IGameService
 {
-    Game StartNewGame(int boardSize = 4, int? maxAttempts = null);
+    Game StartNewGame(int boardSize = 4, int? maxAttempts = null, string playMode = "image");
     Game? GetGame(Guid gameId);
     (bool Success, string? Error) FlipCard(Guid gameId, Guid cardId);
     (bool Success, string? Error) ResolveTurn(Guid gameId);
@@ -26,11 +26,9 @@ public class GameService : IGameService
         _repository = repository;
     }
 
-    public Game StartNewGame(int boardSize = 4, int? maxAttempts = null)
+    public Game StartNewGame(int boardSize = 4, int? maxAttempts = null, string playMode = "image")
     {
-        if (boardSize < 2 || boardSize > 10 || boardSize % 2 != 0)
-            throw new ArgumentOutOfRangeException(nameof(boardSize), "Board size must be an even number between 2 and 10.");
-        var game = _gameFactory.Create(boardSize, maxAttempts);
+        var game = _gameFactory.Create(boardSize, maxAttempts, playMode);
         _repository.Save(game);
         return game;
     }
@@ -109,6 +107,7 @@ public class GameService : IGameService
         {
             Id = game.Id,
             BoardSize = game.BoardSize,
+            PlayMode = game.PlayMode,
             Score = game.Score,
             MoveCount = game.MoveCount,
             MaxAttempts = game.MaxAttempts,
@@ -127,6 +126,7 @@ public class GameStateDto
 {
     public Guid Id { get; set; }
     public int BoardSize { get; set; }
+    public string PlayMode { get; set; } = "image";
     public int Score { get; set; }
     public int MoveCount { get; set; }
     public int? MaxAttempts { get; set; }

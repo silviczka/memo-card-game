@@ -1,0 +1,367 @@
+@page "/leaderboard"
+@using MemoCardGame.Client
+@using Microsoft.AspNetCore.Components.Web
+@implements IDisposable
+@inject GameApiClient Api
+@inject NavigationManager Nav
+@inject IJSRuntime Js
+
+<header class="game-header">
+    <h1 class="game-title">Leaderboards</h1>
+    <p class="game-tagline">Top scores for every board size and mode.</p>
+    <p class="leaderboard-back"><a href="/" class="link-back">← Back to game</a></p>
+</header>
+
+<section class="panel leaderboard-carousel-panel" aria-label="Leaderboard carousel">
+    <div class="lb-toolbar">
+        <span class="lb-toolbar__hint">Switch boards to view scores for each mode and board size.</span>
+        <button type="button" class="lb-refresh" @onclick="ReloadAllAsync" disabled="@_loading" title="Refresh all boards">
+            <span class="lb-refresh__icon" aria-hidden="true">↻</span> Refresh
+        </button>
+    </div>
+
+    @if (_error is not null)
+    {
+        <p class="error" role="alert">@_error</p>
+    }
+    else if (_loading)
+    {
+        <p class="leaderboard-loading">Loading leaderboards…</p>
+    }
+    else
+    {
+        var iPrev = Wrap(_activeIndex - 1);
+        var iCenter = _activeIndex;
+        var iNext = Wrap(_activeIndex + 1);
+
+        <div class="lb-carousel" role="region" aria-roledescription="carousel" aria-label="Leaderboard boards">
+            <button type="button" class="lb-carousel__chev lb-carousel__chev--prev" @onclick="GoPrevAsync" aria-label="Previous leaderboard">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+
+            <div class="lb-carousel__stage @(_pointerActive ? "lb-carousel__stage--dragging" : null) @(_stageAnimClass)"
+                 @ref="_stageRef"
+                 style="@StageStyle()"
+                 @onpointerdown="OnPointerDown"
+                 @onpointerdown:preventDefault="true"
+                 @onpointermove="OnPointerMove"
+                 @onpointermove:preventDefault="@_pointerActive"
+                 @onpointerup="OnPointerUp"
+                 @onpointercancel="OnPointerUp"
+                 @onpointerup:preventDefault="@_pointerActive">
+                @foreach (var slotInfo in new[] { (Index: iPrev, Adjacent: true), (Index: iCenter, Adjacent: false), (Index: iNext, Adjacent: true) })
+                {
+                    var slot = Boards[slotInfo.Index];
+                    var rows = _rowsByBoard[slotInfo.Index];
+                    var maxRows = slotInfo.Adjacent ? 5 : 12;
+                    var slideClass = slotInfo.Adjacent ? "lb-slide lb-slide--adj" : "lb-slide lb-slide--center";
+                    <article class="@slideClass" aria-hidden="@slotInfo.Adjacent.ToString().ToLowerInvariant()" aria-label="@slot.LeaderboardTitle">
+                        <header class="lb-slide__head">
+                            <h2 class="lb-slide__title@(slotInfo.Adjacent ? "" : " lb-slide__title--featured")">
+                                @if (slotInfo.Adjacent)
+                                {
+                                    @slot.LeaderboardTitle
+                                }
+                                else
+                                {
+                                    <span class="lb-slide__title-stack">
+                                        <span class="lb-slide__title-fallback">@slot.LeaderboardTitle</span>
+                                        <span class="lb-slide__title-gradient" aria-hidden="true">@slot.LeaderboardTitle</span>
+                                    </span>
+                                }
+                            </h2>
+                        </header>
+                        @if (rows.Count == 0)
+                        {
+                            <p class="lb-slide__empty">No scores yet — be the first.</p>
+                        }
+                        else
+                        {
+                            var take = Math.Min(maxRows, rows.Count);
+                            <ul class="lb-slide__list">
+                                @for (var r = 0; r < take; r++)
+                                {
+                                    var row = rows[r];
+                                    <li class="lb-slide__row">
+                                        <span class="lb-slide__rank">@(r + 1)</span>
+                                        <span class="lb-slide__name">@row.DisplayName</span>
+                                        <span class="lb-slide__score">@row.Score</span>
+                                    </li>
+                                }
+                            </ul>
+                            @if (rows.Count > take)
+                            {
+                                <p class="lb-slide__more">+@(rows.Count - take) more in full list.</p>
+                            }
+                        }
+                    </article>
+                }
+            </div>
+
+            <button type="button" class="lb-carousel__chev lb-carousel__chev--next" @onclick="GoNextAsync" aria-label="Next leaderboard">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <p class="lb-dots" aria-hidden="true">
+            @for (var i = 0; i < Boards.Count; i++)
+            {
+                var idx = i;
+                <button type="button" class="lb-dot @(idx == _activeIndex ? "lb-dot--active" : null)" @onclick="() => GoToAsync(idx)" aria-label="@($"Show {Boards[idx].LeaderboardTitle}")"></button>
+            }
+        </p>
+    }
+</section>
+
+@code {
+    private static readonly IReadOnlyList<BoardRules.BoardCombo> Boards = BoardRules.All;
+
+    private List<LeaderboardEntryDto>[] _rowsByBoard = default!;
+    private int _activeIndex;
+    private bool _loading = true;
+    private string? _error;
+    private bool _initializedFromQuery;
+    private bool _cookieRead;
+    private bool _stageCaptureReady;
+    private ElementReference _stageRef;
+
+    private bool _pointerActive;
+    private double _pointerStartX;
+    private double _dragDx;
+    private string? _stageAnimClass;
+    private CancellationTokenSource? _animCts;
+
+    protected override void OnInitialized()
+    {
+        _rowsByBoard = new List<LeaderboardEntryDto>[Boards.Count];
+        for (var i = 0; i < _rowsByBoard.Length; i++)
+            _rowsByBoard[i] = new List<LeaderboardEntryDto>();
+
+        if (TryParseQuery(out var qMode, out var qSize))
+        {
+            _activeIndex = FindBoardIndex(qMode, qSize);
+            _initializedFromQuery = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_cookieRead)
+        {
+            _cookieRead = true;
+            if (!_initializedFromQuery)
+            {
+                try
+                {
+                    var raw = await Js.InvokeAsync<string>("memoCookies.get", CookieKeys.LastCohort);
+                    if (TryParseCohortCookie(raw, out var m, out var s))
+                        _activeIndex = FindBoardIndex(m, s);
+                }
+                catch
+                {
+                    // Cookie lookup is optional; fall back to the default board when unavailable.
+                }
+            }
+
+            await LoadAllAsync();
+            StateHasChanged();
+            return;
+        }
+
+        if (!_loading && _error is null && !_stageCaptureReady)
+        {
+            try
+            {
+                await Js.InvokeVoidAsync("memoCarousel.enablePointerCapture", _stageRef);
+            }
+            catch
+            {
+                // Pointer capture improves drag handling but is not required to browse boards.
+            }
+
+            _stageCaptureReady = true;
+        }
+    }
+
+    private int Wrap(int i) => (i % Boards.Count + Boards.Count) % Boards.Count;
+
+    private async Task ApplyNavAsync(int newIndex, bool animateAsNext)
+    {
+        newIndex = Wrap(newIndex);
+        if (newIndex == _activeIndex)
+            return;
+
+        _animCts?.Cancel();
+        _animCts?.Dispose();
+        _animCts = new CancellationTokenSource();
+        var token = _animCts.Token;
+
+        _activeIndex = newIndex;
+        _dragDx = 0;
+        _stageAnimClass = animateAsNext ? "lb-carousel__stage--anim-next" : "lb-carousel__stage--anim-prev";
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await Task.Delay(330, token);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+
+        _stageAnimClass = null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private Task GoNextAsync() => ApplyNavAsync(Wrap(_activeIndex + 1), true);
+
+    private Task GoPrevAsync() => ApplyNavAsync(Wrap(_activeIndex - 1), false);
+
+    private async Task GoToAsync(int index)
+    {
+        var wrapped = Wrap(index);
+        if (wrapped == _activeIndex)
+            return;
+
+        var forward = (wrapped - _activeIndex + Boards.Count) % Boards.Count;
+        var backward = Boards.Count - forward;
+        var animateAsNext = forward <= backward;
+        await ApplyNavAsync(wrapped, animateAsNext);
+    }
+
+    private void OnPointerDown(PointerEventArgs e)
+    {
+        _animCts?.Cancel();
+        _stageAnimClass = null;
+        _pointerActive = true;
+        _pointerStartX = e.ClientX;
+        _dragDx = 0;
+    }
+
+    private void OnPointerMove(PointerEventArgs e)
+    {
+        if (!_pointerActive)
+            return;
+        _dragDx = e.ClientX - _pointerStartX;
+    }
+
+    private void OnPointerUp(PointerEventArgs e)
+    {
+        if (!_pointerActive)
+            return;
+
+        _pointerActive = false;
+        if (_dragDx > 52)
+            _ = ApplyNavAsync(Wrap(_activeIndex - 1), false);
+        else if (_dragDx < -52)
+            _ = ApplyNavAsync(Wrap(_activeIndex + 1), true);
+        _dragDx = 0;
+    }
+
+    private string? StageStyle()
+    {
+        if (!_pointerActive || Math.Abs(_dragDx) < 1)
+            return null;
+        var px = (_dragDx * 0.15).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return $"transform: translateX({px}px);";
+    }
+
+    public void Dispose()
+    {
+        _animCts?.Cancel();
+        _animCts?.Dispose();
+        _animCts = null;
+    }
+
+    private async Task ReloadAllAsync()
+    {
+        await LoadAllAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadAllAsync()
+    {
+        _stageCaptureReady = false;
+        _loading = true;
+        _error = null;
+        StateHasChanged();
+        try
+        {
+            var tasks = Enumerable.Range(0, Boards.Count)
+                .Select(i => Api.GetLeaderboardAsync(Boards[i].Mode, Boards[i].Size, 50))
+                .ToArray();
+            var results = await Task.WhenAll(tasks);
+            for (var i = 0; i < results.Length; i++)
+                _rowsByBoard[i] = results[i].ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static int FindBoardIndex(string mode, int size)
+    {
+        var m = mode == "audio" ? "audio" : "image";
+        for (var i = 0; i < Boards.Count; i++)
+        {
+            if (Boards[i].Mode == m && Boards[i].Size == size)
+                return i;
+        }
+
+        return 0;
+    }
+
+    private bool TryParseQuery(out string mode, out int size)
+    {
+        mode = "image";
+        size = 4;
+        if (!Uri.TryCreate(Nav.Uri, UriKind.Absolute, out var uri))
+            return false;
+        var found = false;
+        var q = uri.Query.TrimStart('?');
+        foreach (var part in q.Split('&', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var kv = part.Split('=', 2);
+            var key = Uri.UnescapeDataString(kv[0]);
+            var val = kv.Length > 1 ? Uri.UnescapeDataString(kv[1]) : "";
+            if (key == "mode" && val is "audio" or "image")
+            {
+                mode = val;
+                found = true;
+            }
+
+            if (key == "boardSize" && int.TryParse(val, out var n) && BoardRules.IsValidCombo(mode, n))
+            {
+                size = n;
+                found = true;
+            }
+        }
+
+        return found;
+    }
+
+    private static bool TryParseCohortCookie(string? raw, out string mode, out int size)
+    {
+        mode = "image";
+        size = 4;
+        if (string.IsNullOrWhiteSpace(raw))
+            return false;
+        var parts = raw.Split(':', 2);
+        if (parts.Length != 2)
+            return false;
+        var m = parts[0].Trim().ToLowerInvariant() == "audio" ? "audio" : "image";
+        if (!int.TryParse(parts[1].Trim(), out var s))
+            return false;
+        if (!BoardRules.IsValidCombo(m, s))
+            return false;
+        mode = m;
+        size = s;
+        return true;
+    }
+}

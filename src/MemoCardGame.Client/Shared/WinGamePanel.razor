@@ -1,0 +1,201 @@
+@using MemoCardGame.Client
+@inject GameApiClient Api
+@inject IJSRuntime Js
+@inject NavigationManager Nav
+
+<div class="message win win-panel" role="status">
+    <span class="message__icon" aria-hidden="true">✓</span>
+    <div class="win-panel__body">
+        <span class="message__text">You matched every pair — nice work!</span>
+
+        @if (_percentileLoading)
+        {
+            <p class="win-panel__stats win-panel__stats--muted">One moment…</p>
+        }
+        else if (_percentile is not null && _percentile.Percentile.HasValue)
+        {
+            <p class="win-panel__stats">
+                You beat <strong>@_percentile.Percentile%</strong> of scores on this board
+                (<span class="win-panel__cohort">@_percentile.CohortLabel</span>, @_percentile.SampleSize @( _percentile.SampleSize == 1 ? "player" : "players")).
+            </p>
+        }
+        else if (_percentileLoaded)
+        {
+            <p class="win-panel__stats win-panel__stats--muted">Not enough scores on this board yet to compare — check the leaderboard later.</p>
+        }
+
+        <p class="win-panel__result">Score <strong>@Score</strong> · @MoveCount moves</p>
+
+        @if (!string.IsNullOrEmpty(_submitMessage))
+        {
+            <p class="win-panel__feedback @( _submitOk ? "win-panel__feedback--ok" : "win-panel__feedback--err")" role="status">@_submitMessage</p>
+        }
+
+        @if (_phase == WinPhase.NameEntry)
+        {
+            <div class="win-panel__name-row">
+                <label class="win-panel__label" for="@_nameInputId">Display name</label>
+                <input id="@_nameInputId" class="win-panel__input" maxlength="24" @bind="_nameDraft" @bind:event="oninput" placeholder="2–24 characters" autocomplete="nickname" />
+            </div>
+        }
+
+        <div class="win-panel__actions">
+            @if (_phase == WinPhase.Intro)
+            {
+                <button type="button" class="btn btn--primary btn--inline" @onclick="OnPlayAgain">Play again</button>
+                <button type="button" class="btn btn--secondary btn--inline" disabled="@_busy" @onclick="StartSubmitFlowAsync">Submit score to leaderboard</button>
+            }
+            else if (_phase == WinPhase.NameEntry)
+            {
+                <button type="button" class="btn btn--primary btn--inline" disabled="@_busy" @onclick="ConfirmSubmitAsync">Submit</button>
+                <button type="button" class="btn btn--ghost btn--inline" disabled="@_busy" @onclick="CancelNameEntry">Back</button>
+            }
+            else
+            {
+                <button type="button" class="btn btn--primary btn--inline" @onclick="OnPlayAgain">Play again</button>
+                <button type="button" class="btn btn--secondary btn--inline" @onclick="ViewLeaderboard">View leaderboard</button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+
+    private readonly string _nameInputId = "win-name-" + Guid.NewGuid().ToString("n")[..8];
+
+    [Parameter, EditorRequired]
+    public Guid GameId { get; set; }
+
+    [Parameter, EditorRequired]
+    public int Score { get; set; }
+
+    [Parameter, EditorRequired]
+    public int MoveCount { get; set; }
+
+    [Parameter, EditorRequired]
+    public int BoardSize { get; set; }
+
+    [Parameter, EditorRequired]
+    public string PlayMode { get; set; } = "image";
+
+    [Parameter, EditorRequired]
+    public EventCallback OnPlayAgain { get; set; }
+
+    private enum WinPhase { Intro, NameEntry, Done }
+
+    private WinPhase _phase = WinPhase.Intro;
+    private bool _percentileLoading = true;
+    private bool _percentileLoaded;
+    private LeaderboardPercentileDto? _percentile;
+    private string _nameDraft = "";
+    private string? _cookieName;
+    private bool _busy;
+    private string? _submitMessage;
+    private bool _submitOk;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            _cookieName = await Js.InvokeAsync<string>("memoCookies.get", CookieKeys.DisplayName);
+            if (string.IsNullOrWhiteSpace(_cookieName))
+                _cookieName = null;
+        }
+        catch
+        {
+            _cookieName = null;
+        }
+
+        await LoadPercentileAsync();
+        _percentileLoading = false;
+        _percentileLoaded = true;
+        StateHasChanged();
+    }
+
+    private async Task LoadPercentileAsync()
+    {
+        try
+        {
+            _percentile = await Api.GetLeaderboardPercentileAsync(GameId);
+        }
+        catch
+        {
+            _percentile = null;
+        }
+    }
+
+    private async Task StartSubmitFlowAsync()
+    {
+        _submitMessage = null;
+        if (!string.IsNullOrEmpty(_cookieName))
+        {
+            await SubmitWithNameAsync(_cookieName!);
+            return;
+        }
+
+        _nameDraft = "";
+        _phase = WinPhase.NameEntry;
+    }
+
+    private void CancelNameEntry()
+    {
+        _phase = WinPhase.Intro;
+        _submitMessage = null;
+    }
+
+    private async Task ConfirmSubmitAsync()
+    {
+        await SubmitWithNameAsync(_nameDraft.Trim());
+    }
+
+    private async Task SubmitWithNameAsync(string name)
+    {
+        _busy = true;
+        _submitMessage = null;
+        StateHasChanged();
+        try
+        {
+            var result = await Api.SubmitLeaderboardAsync(GameId, name);
+            if (result.Ok)
+            {
+                _submitOk = true;
+                _submitMessage = result.Message;
+                try
+                {
+                    await Js.InvokeVoidAsync("memoCookies.set", CookieKeys.DisplayName, name.Trim(), CookieKeys.DefaultDays);
+                    _cookieName = name.Trim();
+                }
+                catch { /* Cookie persistence is optional. */ }
+                _phase = WinPhase.Done;
+            }
+            else
+            {
+                _submitOk = false;
+                _submitMessage = result.Message ?? result.Error ?? "Could not submit.";
+                if (result.Error != "already_submitted")
+                {
+                    _phase = WinPhase.NameEntry;
+                    _nameDraft = _cookieName ?? "";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _submitOk = false;
+            _submitMessage = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void ViewLeaderboard()
+    {
+        var mode = string.Equals(PlayMode, "audio", StringComparison.OrdinalIgnoreCase) ? "audio" : "image";
+        Nav.NavigateTo($"/leaderboard?mode={Uri.EscapeDataString(mode)}&boardSize={BoardSize}");
+    }
+}
