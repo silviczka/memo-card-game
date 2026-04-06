@@ -8,6 +8,12 @@ namespace MemoCardGame.Client;
 
 public class GameApiClient
 {
+    /// <summary>Matches typical ASP.NET Core JSON (camelCase) without relying on trimmed <c>JsonSerializerOptions.Web</c> in WASM.</summary>
+    private static readonly JsonSerializerOptions SubmitLeaderboardJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly HttpClient _http;
 
     public GameApiClient(HttpClient http)
@@ -103,10 +109,33 @@ public class GameApiClient
 
     public async Task<LeaderboardSubmitResponseDto> SubmitLeaderboardAsync(Guid gameId, string displayName)
     {
-        var res = await _http.PostAsJsonAsync("/api/leaderboard/submit", new { gameId, displayName });
-        var dto = await res.Content.ReadFromJsonAsync<LeaderboardSubmitResponseDto>();
+        using var res = await _http.PostAsJsonAsync("/api/leaderboard/submit", new { gameId, displayName });
+        var raw = await res.Content.ReadAsStringAsync();
+
+        LeaderboardSubmitResponseDto? dto = null;
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            try
+            {
+                dto = JsonSerializer.Deserialize<LeaderboardSubmitResponseDto>(raw, SubmitLeaderboardJsonOptions);
+            }
+            catch
+            {
+                // Server may return non-JSON on 500 / unexpected errors.
+            }
+        }
+
         if (dto is null)
-            return new LeaderboardSubmitResponseDto { Ok = false, Message = "Unexpected response from server." };
+        {
+            return new LeaderboardSubmitResponseDto
+            {
+                Ok = false,
+                Message = string.IsNullOrWhiteSpace(raw)
+                    ? "Unexpected response from server."
+                    : "Server error. Please try again."
+            };
+        }
+
         if (!res.IsSuccessStatusCode)
             dto.Ok = false;
         return dto;
