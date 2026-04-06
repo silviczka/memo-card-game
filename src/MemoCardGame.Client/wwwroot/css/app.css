@@ -1274,6 +1274,39 @@ select.field__input option {
     color: #fecaca;
 }
 
+.win-panel__identity {
+    margin: 0.25rem 0 0;
+    font-size: 0.9rem;
+    color: rgba(240, 253, 244, 0.92);
+    line-height: 1.45;
+}
+
+.win-panel__identity-name {
+    color: var(--accent);
+}
+
+.win-panel__change-link {
+    display: inline;
+    margin-left: 0.45rem;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-family: inherit;
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: rgba(148, 163, 184, 0.45);
+    text-underline-offset: 0.15em;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.win-panel__change-link:hover {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+}
+
 .win-panel__name-row {
     display: flex;
     flex-direction: column;

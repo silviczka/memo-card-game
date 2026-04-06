@@ -16,7 +16,7 @@
         {
             <p class="win-panel__stats">
                 You beat <strong>@_percentile.Percentile%</strong> of scores on this board
-                (<span class="win-panel__cohort">@_percentile.CohortLabel</span>, @_percentile.SampleSize @( _percentile.SampleSize == 1 ? "player" : "players")).
+                (<span class="win-panel__cohort">@_percentile.CohortLabel</span>).
             </p>
         }
         else if (_percentileLoaded)
@@ -28,10 +28,17 @@
 
         @if (!string.IsNullOrEmpty(_submitMessage))
         {
-            <p class="win-panel__feedback @( _submitOk ? "win-panel__feedback--ok" : "win-panel__feedback--err")" role="status">@_submitMessage</p>
+            <p class="win-panel__feedback @( _submitOk ? "win-panel__feedback--ok" : "win-panel__feedback--err")">@_submitMessage</p>
         }
 
-        @if (_phase == WinPhase.NameEntry)
+        @if (_phase == WinPhase.Confirm)
+        {
+            <p class="win-panel__identity">
+                Submitting as <strong class="win-panel__identity-name">@_cookieName</strong>
+                <button type="button" class="win-panel__change-link" @onclick="SwitchToNameEntry" aria-label="Use a different display name">Not you?</button>
+            </p>
+        }
+        else if (_phase == WinPhase.NameEntry)
         {
             <div class="win-panel__name-row">
                 <label class="win-panel__label" for="@_nameInputId">Display name</label>
@@ -43,7 +50,12 @@
             @if (_phase == WinPhase.Intro)
             {
                 <button type="button" class="btn btn--primary btn--inline" @onclick="OnPlayAgain">Play again</button>
-                <button type="button" class="btn btn--secondary btn--inline" disabled="@_busy" @onclick="StartSubmitFlowAsync">Submit score to leaderboard</button>
+                <button type="button" class="btn btn--secondary btn--inline" disabled="@_busy" @onclick="StartSubmitFlowAsync">Submit score</button>
+            }
+            else if (_phase == WinPhase.Confirm)
+            {
+                <button type="button" class="btn btn--primary btn--inline" disabled="@_busy" @onclick="ConfirmSavedNameAsync">Submit</button>
+                <button type="button" class="btn btn--ghost btn--inline" disabled="@_busy" @onclick="CancelNameEntry">Back</button>
             }
             else if (_phase == WinPhase.NameEntry)
             {
@@ -81,7 +93,7 @@
     [Parameter, EditorRequired]
     public EventCallback OnPlayAgain { get; set; }
 
-    private enum WinPhase { Intro, NameEntry, Done }
+    private enum WinPhase { Intro, Confirm, NameEntry, Done }
 
     private WinPhase _phase = WinPhase.Intro;
     private bool _percentileLoading = true;
@@ -127,16 +139,28 @@
         }
     }
 
-    private async Task StartSubmitFlowAsync()
+    private void StartSubmitFlowAsync()
     {
         _submitMessage = null;
         if (!string.IsNullOrEmpty(_cookieName))
         {
-            await SubmitWithNameAsync(_cookieName!);
+            _phase = WinPhase.Confirm;
             return;
         }
 
         _nameDraft = "";
+        _phase = WinPhase.NameEntry;
+    }
+
+    private async Task ConfirmSavedNameAsync()
+    {
+        await SubmitWithNameAsync(_cookieName!);
+    }
+
+    private void SwitchToNameEntry()
+    {
+        _nameDraft = _cookieName ?? "";
+        _submitMessage = null;
         _phase = WinPhase.NameEntry;
     }
 
