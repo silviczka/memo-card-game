@@ -58,17 +58,7 @@
                     <article class="@slideClass" aria-hidden="@slotInfo.Adjacent.ToString().ToLowerInvariant()" aria-label="@slot.LeaderboardTitle">
                         <header class="lb-slide__head">
                             <h2 class="lb-slide__title@(slotInfo.Adjacent ? "" : " lb-slide__title--featured")">
-                                @if (slotInfo.Adjacent)
-                                {
-                                    @slot.LeaderboardTitle
-                                }
-                                else
-                                {
-                                    <span class="lb-slide__title-stack">
-                                        <span class="lb-slide__title-fallback">@slot.LeaderboardTitle</span>
-                                        <span class="lb-slide__title-gradient" aria-hidden="true">@slot.LeaderboardTitle</span>
-                                    </span>
-                                }
+                                @slot.LeaderboardTitle
                             </h2>
                         </header>
                         @if (rows.Count == 0)

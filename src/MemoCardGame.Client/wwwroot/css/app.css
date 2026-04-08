@@ -130,11 +130,21 @@ body::after {
     letter-spacing: -0.02em;
     margin: 0;
     line-height: 1.05;
-    background: linear-gradient(120deg, #fff 0%, #e0f2fe 40%, #22d3ee 100%);
+    /* Bright left edge reads clearly on dark bg */
+    background: linear-gradient(120deg, #ffffff 0%, #f0f9ff 18%, #e0f2fe 38%, #22d3ee 72%, #2dd4bf 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    text-shadow: 0 0 60px rgba(34, 211, 238, 0.2);
+    -webkit-text-fill-color: transparent;
+}
+
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+    .game-title {
+        background: none;
+        color: #e0f2fe;
+        -webkit-text-fill-color: unset;
+        filter: none;
+    }
 }
 
 .game-tagline {
@@ -448,7 +458,7 @@ select.field__input option {
     color: #f8fafc;
 }
 
-/* Custom dropdown — rounded list panel (no OS rectangle) */
+/* Custom dropdown ? rounded list panel (no OS rectangle) */
 .custom-int-select__wrap {
     position: relative;
     width: 100%;
@@ -720,7 +730,7 @@ select.field__input option {
     max-width: 100%;
 }
 
-/* 8×8 board meta strip */
+/* 8?8 board meta strip */
 .board-stack--8 {
     width: max-content;
     max-width: 100%;
@@ -1410,6 +1420,8 @@ select.field__input option {
     max-width: min(56rem, 100%);
     margin-inline: auto;
     padding: 1.25rem 1rem 1.5rem;
+    /* Vertical offset for prev/next so they stay put when slide height changes (was align-self: center). */
+    --lb-chevron-offset: clamp(3.85rem, 11.5vh, 6.35rem);
     /* Disable the glass blur here so leaderboard title gradients render reliably in Chromium. */
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
@@ -1475,7 +1487,7 @@ select.field__input option {
 
 .lb-carousel {
     display: flex;
-    align-items: stretch;
+    align-items: flex-start;
     gap: 0.35rem;
     width: 100%;
     max-width: 100%;
@@ -1483,7 +1495,8 @@ select.field__input option {
 
 .lb-carousel__chev {
     flex: 0 0 auto;
-    align-self: center;
+    align-self: flex-start;
+    margin-top: var(--lb-chevron-offset);
     width: 2.75rem;
     height: 2.75rem;
     display: grid;
@@ -1643,53 +1656,22 @@ select.field__input option {
     font-size: clamp(0.78rem, 2.8vw, 0.95rem);
     font-weight: 700;
     letter-spacing: -0.02em;
-    color: rgba(248, 250, 252, 0.96);
     line-height: 1.25;
+    /* Solid cyan tints: reliable on dark panels (no background-clip: text). */
+    color: #bae6fd;
 }
 
-/* Featured titles use a readable fallback layer with an optional gradient overlay. */
 .lb-slide__title--featured {
     font-size: clamp(0.95rem, 3.2vw, 1.1rem);
-}
-
-.lb-slide__title--featured .lb-slide__title-stack {
-    position: relative;
-    display: block;
-    width: 100%;
-}
-
-.lb-slide__title--featured .lb-slide__title-fallback {
-    display: block;
-    color: #cffafe;
-}
-
-.lb-slide__title--featured .lb-slide__title-gradient {
-    display: none;
-    position: absolute;
-    inset: 0;
-    text-align: center;
-    background: linear-gradient(118deg, #f8fafc 0%, #e0f2fe 32%, #22d3ee 68%, #2dd4bf 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    filter: none !important;
-    -webkit-filter: none !important;
-    pointer-events: none;
-}
-
-@media (prefers-color-scheme: light) {
-    .lb-slide__title--featured .lb-slide__title-gradient {
-        display: block;
-    }
+    color: #a5f3fc;
+    text-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
 }
 
 @media (forced-colors: active) {
-    .lb-slide__title--featured .lb-slide__title-gradient {
-        display: none;
-    }
-
-    .lb-slide__title--featured .lb-slide__title-fallback {
+    .lb-slide__title,
+    .lb-slide__title--featured {
         color: CanvasText;
+        text-shadow: none;
     }
 }
 
@@ -1795,6 +1777,16 @@ select.field__input option {
 }
 
 @media (max-width: 720px) {
+    .leaderboard-carousel-panel {
+        padding-inline: 0.65rem;
+        --lb-chevron-offset: clamp(3.35rem, 10vh, 5.75rem);
+    }
+
+    .lb-toolbar__hint {
+        font-size: 0.88rem;
+        line-height: 1.4;
+    }
+
     .lb-carousel {
         gap: 0.2rem;
     }
@@ -1802,13 +1794,18 @@ select.field__input option {
     .lb-carousel__chev {
         width: 2.35rem;
         height: 2.35rem;
+        flex-shrink: 0;
+    }
+
+    .lb-carousel__stage {
+        gap: 0.35rem;
     }
 
     .lb-slide--adj {
-        flex: 0 1 22%;
-        max-width: 5.5rem;
-        opacity: 0.55;
-        transform: scale(0.88);
+        flex: 0 1 18%;
+        max-width: 4.5rem;
+        opacity: 0.5;
+        transform: scale(0.86);
     }
 
     .lb-slide--adj .lb-slide__head {
@@ -1836,8 +1833,93 @@ select.field__input option {
     }
 
     .lb-slide--center {
-        flex: 1 1 56%;
+        flex: 1 1 64%;
+        min-width: 0;
         max-width: none;
+    }
+
+    .lb-slide--center .lb-slide__title {
+        font-size: clamp(0.82rem, 3.4vw, 0.98rem);
+    }
+
+    .lb-slide--center .lb-slide__row {
+        grid-template-columns: 1.35rem minmax(0, 1fr) auto;
+        gap: 0.32rem 0.42rem;
+        font-size: clamp(0.86rem, 2.65vw, 0.93rem);
+        padding: 0.42rem 0.38rem;
+        align-items: start;
+    }
+
+    .lb-slide--center .lb-slide__name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.3;
+        hyphens: auto;
+    }
+
+    .lb-slide--center .lb-slide__score {
+        align-self: start;
+        padding-top: 0.05em;
+    }
+
+    .lb-slide--center .lb-slide__list {
+        max-height: min(58vh, 26rem);
+        padding-inline: 0.4rem;
+    }
+}
+
+/* Phones: side previews steal too much width - show only the active board full-width */
+@media (max-width: 520px) {
+    .lb-carousel__stage {
+        gap: 0;
+    }
+
+    .lb-slide--adj {
+        display: none;
+    }
+
+    .lb-slide--center {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+
+    .lb-slide--center .lb-slide__title {
+        font-size: clamp(0.78rem, 3.5vw, 0.92rem);
+    }
+
+    .lb-slide--center .lb-slide__row {
+        grid-template-columns: 1.35rem minmax(0, 1fr) auto;
+        font-size: clamp(0.82rem, 3.1vw, 0.9rem);
+        padding: 0.4rem 0.35rem;
+        gap: 0.28rem 0.38rem;
+    }
+
+    .lb-slide--center .lb-slide__rank {
+        font-size: 0.88em;
+    }
+
+    .lb-slide--center .lb-slide__score {
+        font-size: 0.92em;
+    }
+
+    .lb-slide--center .lb-slide__name {
+        line-height: 1.28;
+    }
+
+    .lb-slide__more {
+        font-size: 0.74rem;
+    }
+}
+
+/* Very narrow: a touch more room for names; keep body text - ~13px at default root */
+@media (max-width: 380px) {
+    .lb-slide--center .lb-slide__row {
+        font-size: clamp(0.8rem, 3.6vw, 0.86rem);
+        grid-template-columns: 1.25rem minmax(0, 1fr) auto;
+        padding-inline: 0.3rem;
     }
 }
 

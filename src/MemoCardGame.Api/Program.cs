@@ -44,7 +44,14 @@ builder.Services.AddCors(options =>
     });
 });
 
+var hasPostgresConnection = !string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("Default"));
+
 var app = builder.Build();
+
+app.Logger.LogInformation(
+    "Database: {Provider}. Set ConnectionStrings__Default (Neon) on the host to use PostgreSQL; otherwise SQLite is used at {SqlitePath}.",
+    hasPostgresConnection ? "PostgreSQL" : "SQLite",
+    sqlitePath);
 
 using (var scope = app.Services.CreateScope())
 {
@@ -82,7 +89,8 @@ app.MapGet("/healthz", () =>
     {
         status = "ok",
         service = "MemoCardGame.Api",
-        version
+        version,
+        database = hasPostgresConnection ? "postgresql" : "sqlite"
     });
 });
 app.MapApi();
