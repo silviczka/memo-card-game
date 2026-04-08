@@ -4,9 +4,23 @@
 @inject NavigationManager Nav
 
 <div class="message win win-panel" role="status">
-    <span class="message__icon" aria-hidden="true">✓</span>
     <div class="win-panel__body">
-        <span class="message__text">You matched every pair — nice work!</span>
+        <div class="win-panel__head @(_phase == WinPhase.Intro ? "win-panel__head--with-art" : null)">
+            <div class="win-panel__head-copy">
+                <span class="message__icon" aria-hidden="true">✓</span>
+                <span class="message__text">You matched every pair — nice work!</span>
+            </div>
+            @if (_phase == WinPhase.Intro)
+            {
+                <img class="win-panel__art"
+                     src="@WinArtSrc"
+                     width="160"
+                     height="160"
+                     alt=""
+                     role="presentation"
+                     loading="eager" />
+            }
+        </div>
 
         @if (_percentileLoading)
         {
@@ -73,6 +87,12 @@
 
 @code {
 
+    private const string WinSoundSrc = "/audio/win-game.mp3";
+    private const string WinArtImage = "/images/win_memo_mascot.png";
+    private const string WinArtAudio = "/images/win_memo_mascot_headphones.png";
+    private string WinArtSrc => string.Equals(PlayMode, "audio", StringComparison.OrdinalIgnoreCase)
+        ? WinArtAudio
+        : WinArtImage;
     private readonly string _nameInputId = "win-name-" + Guid.NewGuid().ToString("n")[..8];
 
     [Parameter, EditorRequired]
@@ -109,6 +129,15 @@
     {
         if (!firstRender)
             return;
+
+        try
+        {
+            await Js.InvokeVoidAsync("memoAudio.play", WinSoundSrc);
+        }
+        catch
+        {
+            // Sound playback is non-critical (browser autoplay or runtime JS issues).
+        }
 
         try
         {
