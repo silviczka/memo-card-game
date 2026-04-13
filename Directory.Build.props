@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Semantic app version (MAJOR.MINOR.PATCH). Bump before a release:
+      PATCH: bugfixes (1.0.0 -> 1.0.1)
+      MINOR: compatible features (1.0.5 -> 1.1.0)
+      MAJOR: breaking changes (1.2.3 -> 2.0.0)
+    Patch is not limited to a single digit (1.0.9 -> 1.0.10, not 1.2.0).
+    /healthz reads AssemblyInformationalVersion, which MSBuild sets from <Version>.
+
+    Optional automation: add the MinVer package (PrivateAssets=all) and git tags like v1.0.1
+    so versions are derived from tags instead of editing this file.
+  -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+</Project>

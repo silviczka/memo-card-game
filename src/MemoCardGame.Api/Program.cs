@@ -84,7 +84,11 @@ app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
 app.MapGet("/healthz", () =>
 {
-    var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "unknown";
+    var asm = Assembly.GetExecutingAssembly();
+    var info = asm.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+    var version = !string.IsNullOrWhiteSpace(info)
+        ? info!
+        : asm.GetName().Version?.ToString(3) ?? "unknown";
     return Results.Ok(new
     {
         status = "ok",
